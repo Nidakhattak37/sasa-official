@@ -18,9 +18,9 @@ export const DualEditorialFeature: React.FC = () => {
     subtitle: "New Arrival 2026",
     eyebrow: "Chikankari Luxury",
     title: "Pure Chikankari Lawn",
-    description: "Delicate scalloped borders, pastel floral threadwork, and breezy organza dupattas crafted for golden summer afternoons.",
+    description: "",
     imageUrl: "/images/sky_blue_chikankari.jpg",
-    buttonText: "Explore Summer Lawn",
+    buttonText: "Show Now",
     categorySlug: "unstitched",
   };
 
@@ -29,9 +29,9 @@ export const DualEditorialFeature: React.FC = () => {
     subtitle: "★ Best Seller Suite",
     eyebrow: "Royal Evening Wear",
     title: "Embroidered Velvet & Silk",
-    description: "Royal navy and gold tilla threadwork paired with sheer tissue dupattas and tailored pants for festive celebrations.",
+    description: "",
     imageUrl: "/images/yellow_mustard_suit.jpg",
-    buttonText: "Explore Festive Velvet",
+    buttonText: "Shop Now",
     categorySlug: "luxury-pret",
   };
 
@@ -81,10 +81,6 @@ export const DualEditorialFeature: React.FC = () => {
               {left.title}
             </h2>
 
-            <p className="text-xs sm:text-sm lg:text-base text-gray-200 font-light leading-relaxed line-clamp-3">
-              {left.description}
-            </p>
-
             <div className="pt-2">
               <button 
                 onClick={(e) => {
@@ -93,7 +89,7 @@ export const DualEditorialFeature: React.FC = () => {
                 }}
                 className="px-7 py-3.5 bg-white text-[#1E1E24] hover:bg-[#8B5E34] hover:text-white font-bold text-xs uppercase tracking-widest rounded-xl shadow-2xl transition-all duration-300 flex items-center gap-3 group/btn"
               >
-                <span>{left.buttonText || 'Explore'}</span>
+                <span>{left.buttonText === 'Explore Summer Lawn' ? 'Show Now' : (left.buttonText || 'Show Now')}</span>
                 <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1.5 transition-transform" />
               </button>
             </div>
@@ -140,10 +136,6 @@ export const DualEditorialFeature: React.FC = () => {
               {right.title}
             </h2>
 
-            <p className="text-xs sm:text-sm lg:text-base text-gray-200 font-light leading-relaxed line-clamp-3">
-              {right.description}
-            </p>
-
             <div className="pt-2">
               <button 
                 onClick={(e) => {
@@ -152,7 +144,7 @@ export const DualEditorialFeature: React.FC = () => {
                 }}
                 className="px-7 py-3.5 bg-white text-[#1E1E24] hover:bg-[#8B5E34] hover:text-white font-bold text-xs uppercase tracking-widest rounded-xl shadow-2xl transition-all duration-300 flex items-center gap-3 group/btn"
               >
-                <span>{right.buttonText || 'Explore'}</span>
+                <span>{right.buttonText || 'Shop Now'}</span>
                 <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1.5 transition-transform" />
               </button>
             </div>

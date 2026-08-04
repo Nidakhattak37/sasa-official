@@ -168,15 +168,21 @@ export const ProductDetailView: React.FC = () => {
             {/* Right: Product Purchase Details (5 Cols) - Matching Einka Screenshot */}
             <div className="lg:col-span-5 space-y-6 bg-white p-6 sm:p-8 border border-[#EAE4DC] rounded-xl shadow-sm">
               
-              {/* Product Title */}
-              <div className="space-y-2">
-                <h1 className="font-serif text-3xl font-normal text-[#1E1E24] tracking-tight">
+              {/* Product Title & Metadata */}
+              <div className="space-y-2 border-b border-[#EAE4DC] pb-4">
+                {product.sku && (
+                  <span className="text-[10px] uppercase font-mono tracking-widest text-gray-400 block">
+                    SKU: {product.sku}
+                  </span>
+                )}
+
+                <h1 className="font-serif text-2xl sm:text-3xl font-normal text-[#1E1E24] tracking-tight leading-snug">
                   {product.name}
                 </h1>
 
                 {/* Price Display */}
                 <div className="flex items-baseline gap-3 pt-1">
-                  <span className="text-xl font-semibold text-[#1E1E24]">
+                  <span className="text-2xl font-bold text-[#1E1E24]">
                     {formatPrice(product.price, currency)}
                   </span>
                   {product.isSale && product.originalPrice && product.originalPrice > product.price && (
@@ -184,17 +190,33 @@ export const ProductDetailView: React.FC = () => {
                       {formatPrice(product.originalPrice, currency)}
                     </span>
                   )}
+                  {discountPercent && (
+                    <span className="text-xs font-bold text-[#8B5E34] bg-[#F5F1EC] px-2 py-0.5 rounded border border-[#EAE4DC]">
+                      Save {discountPercent}%
+                    </span>
+                  )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  {(product.collectionType || product.collection) && (
-                    <span className="inline-block text-[11px] text-[#8B5E34] font-semibold uppercase tracking-widest bg-[#F5F1EC] px-2.5 py-0.5 rounded border border-[#EAE4DC]">
+                {/* Badges Bar: Season, Piece Type, Stitching Status */}
+                <div className="flex flex-wrap items-center gap-2 pt-2">
+                  {product.season && (
+                    <span className="inline-block text-[10px] text-[#8B5E34] font-bold uppercase tracking-wider bg-[#F5F1EC] px-2.5 py-1 rounded border border-[#EAE4DC]">
+                      {product.season}
+                    </span>
+                  )}
+                  {(product.collectionType || product.collection) && !product.season && (
+                    <span className="inline-block text-[10px] text-[#8B5E34] font-semibold uppercase tracking-widest bg-[#F5F1EC] px-2.5 py-1 rounded border border-[#EAE4DC]">
                       {product.collectionType || product.collection}
                     </span>
                   )}
                   {product.pieceType && (
-                    <span className="inline-block text-[11px] text-white font-bold uppercase tracking-widest bg-[#222222] px-2.5 py-0.5 rounded shadow-sm">
+                    <span className="inline-block text-[10px] text-white font-bold uppercase tracking-widest bg-[#222222] px-2.5 py-1 rounded shadow-sm">
                       {product.pieceType}
+                    </span>
+                  )}
+                  {product.stitchingStatus && (
+                    <span className="inline-block text-[10px] text-gray-700 font-semibold uppercase tracking-wider bg-gray-100 px-2.5 py-1 rounded border border-gray-200">
+                      {product.stitchingStatus}
                     </span>
                   )}
                 </div>

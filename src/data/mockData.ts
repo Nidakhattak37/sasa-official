@@ -933,9 +933,9 @@ export const DEFAULT_DUAL_EDITORIAL = {
     subtitle: "New Arrival 2026",
     eyebrow: "Chikankari Luxury",
     title: "Pure Chikankari Lawn",
-    description: "Delicate scalloped borders, pastel floral threadwork, and breezy organza dupattas crafted for golden summer afternoons.",
+    description: "",
     imageUrl: "/images/sky_blue_chikankari.jpg",
-    buttonText: "Explore Summer Lawn",
+    buttonText: "Show Now",
     categorySlug: "unstitched",
   },
   right: {
@@ -943,9 +943,9 @@ export const DEFAULT_DUAL_EDITORIAL = {
     subtitle: "★ Best Seller Suite",
     eyebrow: "Royal Evening Wear",
     title: "Embroidered Velvet & Silk",
-    description: "Royal navy and gold tilla threadwork paired with sheer tissue dupattas and tailored pants for festive celebrations.",
+    description: "",
     imageUrl: "/images/yellow_mustard_suit.jpg",
-    buttonText: "Explore Festive Velvet",
+    buttonText: "Shop Now",
     categorySlug: "luxury-pret",
   }
 };

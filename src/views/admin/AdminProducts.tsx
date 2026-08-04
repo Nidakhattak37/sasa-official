@@ -35,7 +35,9 @@ export const AdminProducts: React.FC = () => {
   const [name, setName] = useState('');
   const [category, setCategory] = useState(categories[0]?.name || 'Pret');
   const [collectionType, setCollectionType] = useState('Summer Lawn');
+  const [season, setSeason] = useState<'Summer Collection' | 'Winter Collection' | 'All Season'>('Summer Collection');
   const [pieceType, setPieceType] = useState('3 Piece');
+  const [stitchingStatus, setStitchingStatus] = useState<'Stitched' | 'Unstitched'>('Unstitched');
   const [price, setPrice] = useState<number>(12000);
   const [originalPrice, setOriginalPrice] = useState<number>(15000);
   const [stock, setStock] = useState<number>(20);
@@ -53,7 +55,9 @@ export const AdminProducts: React.FC = () => {
     setName('');
     setCategory(categories[0]?.name || 'Pret');
     setCollectionType('Summer Lawn');
+    setSeason('Summer Collection');
     setPieceType('3 Piece');
+    setStitchingStatus('Unstitched');
     setPrice(12900);
     setOriginalPrice(15900);
     setStock(15);
@@ -77,7 +81,9 @@ export const AdminProducts: React.FC = () => {
     setName(p.name);
     setCategory(p.category);
     setCollectionType(p.collectionType || p.collection || 'Summer Lawn');
+    setSeason(p.season || 'Summer Collection');
     setPieceType(p.pieceType || '3 Piece');
+    setStitchingStatus(p.stitchingStatus || 'Unstitched');
     setPrice(p.price);
     setOriginalPrice(p.originalPrice || p.price);
     setStock(p.stock);
@@ -143,7 +149,9 @@ export const AdminProducts: React.FC = () => {
         category,
         collectionType,
         collection: collectionType,
+        season,
         pieceType,
+        stitchingStatus,
         price: Number(price),
         originalPrice: Number(originalPrice),
         stock: Number(stock),
@@ -161,7 +169,9 @@ export const AdminProducts: React.FC = () => {
         category,
         collectionType,
         collection: collectionType,
+        season,
         pieceType,
+        stitchingStatus,
         price: Number(price),
         originalPrice: Number(originalPrice),
         stock: Number(stock),
@@ -169,7 +179,7 @@ export const AdminProducts: React.FC = () => {
         fabricDetails,
         description,
         images: finalImages,
-        sizes: ['XS', 'S', 'M', 'L', 'XL', 'Unstitched'],
+        sizes: stitchingStatus === 'Unstitched' ? ['Unstitched'] : ['XS', 'S', 'M', 'L', 'XL', 'Unstitched'],
         colors: [{ name: 'Royale Burgundy', hex: '#6b1c28' }],
         isNewArrival,
         isBestSeller,
@@ -436,9 +446,23 @@ export const AdminProducts: React.FC = () => {
                   />
                 </div>
 
+                {/* Season Selection (Summer vs Winter) */}
+                <div>
+                  <label className="block font-semibold text-[#222] mb-1">Season Tag *</label>
+                  <select
+                    value={season}
+                    onChange={(e) => setSeason(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-[#FAFAFA] border border-[#EAE4DC] rounded-lg focus:ring-1 focus:ring-[#9E8055] font-semibold text-[#8B5E34]"
+                  >
+                    <option value="Summer Collection">Summer Collection</option>
+                    <option value="Winter Collection">Winter Collection</option>
+                    <option value="All Season">All Season Essentials</option>
+                  </select>
+                </div>
+
                 {/* Collection Type (Summer, Winter, etc.) */}
                 <div>
-                  <label className="block font-semibold text-[#222] mb-1">Collection Type (Season) *</label>
+                  <label className="block font-semibold text-[#222] mb-1">Collection Edit *</label>
                   <select
                     value={collectionType}
                     onChange={(e) => setCollectionType(e.target.value)}
@@ -456,11 +480,24 @@ export const AdminProducts: React.FC = () => {
                   <select
                     value={pieceType}
                     onChange={(e) => setPieceType(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#FAFAFA] border border-[#EAE4DC] rounded-lg focus:ring-1 focus:ring-[#9E8055] focus:outline-none font-semibold text-[#8B5E34]"
+                    className="w-full px-3 py-2 bg-[#FAFAFA] border border-[#EAE4DC] rounded-lg focus:ring-1 focus:ring-[#9E8055] focus:outline-none font-semibold text-[#1E1E24]"
                   >
                     {PIECE_TYPES.map(p => (
                       <option key={p} value={p}>{p}</option>
                     ))}
+                  </select>
+                </div>
+
+                {/* Stitching Status (Stitched vs Unstitched) */}
+                <div>
+                  <label className="block font-semibold text-[#222] mb-1">Stitching Status *</label>
+                  <select
+                    value={stitchingStatus}
+                    onChange={(e) => setStitchingStatus(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-[#FAFAFA] border border-[#EAE4DC] rounded-lg focus:ring-1 focus:ring-[#9E8055] font-semibold text-[#222]"
+                  >
+                    <option value="Unstitched">Unstitched (3M Fabric Cutpiece)</option>
+                    <option value="Stitched">Stitched (Ready to Wear Pret)</option>
                   </select>
                 </div>
 

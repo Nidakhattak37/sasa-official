@@ -15,7 +15,7 @@ const toTitleCase = (str: string) => {
 };
 
 export const EinkaShowcaseSlider: React.FC = () => {
-  const { products, setSelectedProduct, setSelectedProductId, setCurrentView, toggleWishlist, wishlist, currency, addToCart } = useApp();
+  const { products, setSelectedProductId, setCurrentView, toggleWishlist, wishlist, currency, addToCart } = useApp();
   const sliderRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
@@ -52,7 +52,6 @@ export const EinkaShowcaseSlider: React.FC = () => {
   };
 
   const handleProductClick = (product: Product) => {
-    setSelectedProduct(product);
     setSelectedProductId(product.id);
     setCurrentView('product-detail');
   };

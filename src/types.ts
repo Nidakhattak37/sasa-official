@@ -13,7 +13,9 @@ export interface Product {
   subcategory?: string;
   collection?: string;
   collectionType?: string; // e.g. 'Summer Lawn', 'Winter Velvet', 'Spring Floral', 'Autumn Silk', 'Festive / Eid', 'Mid-Season'
+  season?: 'Summer Collection' | 'Winter Collection' | 'All Season';
   pieceType?: string; // '3 Piece' | '2 Piece' | '1 Piece' | 'Shirt Dupatta' | 'Shirt Shalwar'
+  stitchingStatus?: 'Stitched' | 'Unstitched';
   description: string;
   fabricDetails: string;
   careInstructions?: string;
@@ -38,6 +40,9 @@ export interface Category {
   slug: string;
   image: string;
   description: string;
+  season?: 'Summer Collection' | 'Winter Collection' | 'All Season';
+  pieceType?: string; // e.g. '3 Piece' | '2 Piece' | '1 Piece' | 'Shirt Dupatta' | 'Shirt Shalwar'
+  stitchingStatus?: 'Stitched' | 'Unstitched' | 'Both';
   isFeatured?: boolean;
   subcategories: string[];
 }

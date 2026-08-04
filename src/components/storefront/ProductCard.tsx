@@ -19,7 +19,7 @@ const toTitleCase = (str: string) => {
 };
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }) => {
-  const { currency, toggleWishlist, isInWishlist, addToCart, setCurrentView, setSelectedProductId, setSelectedProduct } = useApp();
+  const { currency, toggleWishlist, isInWishlist, addToCart, setCurrentView, setSelectedProductId } = useApp();
   const [isHovered, setIsHovered] = useState(false);
   const inWishlist = isInWishlist(product.id);
 
@@ -28,14 +28,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }
     : null;
 
   const handleCardClick = () => {
-    setSelectedProduct(product);
     setSelectedProductId(product.id);
     setCurrentView('product-detail');
   };
 
   const handleQuickView = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setSelectedProduct(product);
     setSelectedProductId(product.id);
     setCurrentView('product-detail');
   };

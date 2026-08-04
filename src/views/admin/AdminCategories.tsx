@@ -11,6 +11,9 @@ export const AdminCategories: React.FC = () => {
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
+  const [season, setSeason] = useState<'Summer Collection' | 'Winter Collection' | 'All Season'>('Summer Collection');
+  const [pieceType, setPieceType] = useState('3 Piece');
+  const [stitchingStatus, setStitchingStatus] = useState<'Stitched' | 'Unstitched' | 'Both'>('Unstitched');
 
   const openCreate = () => {
     setEditingId(null);
@@ -18,6 +21,9 @@ export const AdminCategories: React.FC = () => {
     setSlug('');
     setDescription('');
     setImage('https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800');
+    setSeason('Summer Collection');
+    setPieceType('3 Piece');
+    setStitchingStatus('Unstitched');
     setIsModalOpen(true);
   };
 
@@ -27,6 +33,9 @@ export const AdminCategories: React.FC = () => {
     setSlug(cat.slug);
     setDescription(cat.description);
     setImage(cat.image);
+    setSeason(cat.season || 'Summer Collection');
+    setPieceType(cat.pieceType || '3 Piece');
+    setStitchingStatus(cat.stitchingStatus || 'Unstitched');
     setIsModalOpen(true);
   };
 
@@ -37,9 +46,9 @@ export const AdminCategories: React.FC = () => {
     const generatedSlug = slug || name.toLowerCase().replace(/\s+/g, '-');
 
     if (editingId) {
-      updateCategory(editingId, { name, slug: generatedSlug, description, image });
+      updateCategory(editingId, { name, slug: generatedSlug, description, image, season, pieceType, stitchingStatus });
     } else {
-      addCategory({ name, slug: generatedSlug, description, image });
+      addCategory({ name, slug: generatedSlug, description, image, season, pieceType, stitchingStatus });
     }
     setIsModalOpen(false);
   };
@@ -50,7 +59,7 @@ export const AdminCategories: React.FC = () => {
       <div className="flex justify-between items-center border-b border-[#EAE4DC] pb-4">
         <div>
           <h2 className="font-serif text-2xl font-bold text-[#222]">Category Architecture</h2>
-          <p className="text-xs text-gray-500">Organize storefront collections, lawn edits, and pret categories.</p>
+          <p className="text-xs text-gray-500">Organize storefront collections, lawn edits, winter velvet, and pret categories with seasonal and piece rules.</p>
         </div>
 
         <button
@@ -66,7 +75,7 @@ export const AdminCategories: React.FC = () => {
           <div key={cat.id} className="bg-white border border-[#EAE4DC] rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
             <div className="relative aspect-[16/9] bg-gray-100">
               <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/20" />
+              <div className="absolute inset-0 bg-black/30" />
               <h3 className="absolute bottom-3 left-4 font-serif text-xl font-bold text-white drop-shadow">
                 {cat.name}
               </h3>
@@ -74,7 +83,27 @@ export const AdminCategories: React.FC = () => {
 
             <div className="p-4 space-y-2 text-xs flex-1">
               <span className="text-[10px] font-mono text-gray-400 block">Slug: /{cat.slug}</span>
-              <p className="text-gray-600 leading-relaxed">{cat.description}</p>
+              
+              {/* Category Taxonomies */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {cat.season && (
+                  <span className="px-2 py-0.5 bg-[#F5F1EC] text-[#8B5E34] text-[10px] font-bold rounded border border-[#EAE4DC]">
+                    {cat.season}
+                  </span>
+                )}
+                {cat.pieceType && (
+                  <span className="px-2 py-0.5 bg-[#1E1E24] text-white text-[10px] font-bold rounded">
+                    {cat.pieceType}
+                  </span>
+                )}
+                {cat.stitchingStatus && (
+                  <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] font-semibold rounded border border-gray-200">
+                    {cat.stitchingStatus}
+                  </span>
+                )}
+              </div>
+
+              <p className="text-gray-600 leading-relaxed pt-1">{cat.description}</p>
             </div>
 
             <div className="p-3 bg-[#FAFAFA] border-t border-[#EAE4DC] flex justify-end gap-2 text-xs">
@@ -97,7 +126,7 @@ export const AdminCategories: React.FC = () => {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-[#EAE4DC] pb-3">
               <h3 className="font-serif text-lg font-bold text-[#222]">
                 {editingId ? 'Edit Category' : 'Create New Category'}
@@ -109,29 +138,74 @@ export const AdminCategories: React.FC = () => {
 
             <form onSubmit={handleSave} className="space-y-3 text-xs">
               <div>
-                <label className="block font-semibold mb-1">Category Name *</label>
+                <label className="block font-semibold mb-1 text-[#222]">Category Name *</label>
                 <input
                   type="text"
                   required
+                  placeholder="e.g. Velvet Collection or Unstitched Lawn"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border rounded"
+                  className="w-full px-3 py-2 border rounded focus:ring-1 focus:ring-[#8B5E34]"
                 />
               </div>
 
+              {/* Season Selection (Summer Collection vs Winter Collection) */}
               <div>
-                <label className="block font-semibold mb-1">Slug URL</label>
+                <label className="block font-semibold mb-1 text-[#222]">Collection Season *</label>
+                <select
+                  value={season}
+                  onChange={(e) => setSeason(e.target.value as any)}
+                  className="w-full px-3 py-2 border rounded font-semibold text-[#8B5E34] bg-[#FAFAFA]"
+                >
+                  <option value="Summer Collection">Summer Collection</option>
+                  <option value="Winter Collection">Winter Collection</option>
+                  <option value="All Season">All Season Essentials</option>
+                </select>
+              </div>
+
+              {/* Piece Type Selection (3 Piece, 2 Piece, 1 Piece, etc) */}
+              <div>
+                <label className="block font-semibold mb-1 text-[#222]">Suit Composition (Piece Type) *</label>
+                <select
+                  value={pieceType}
+                  onChange={(e) => setPieceType(e.target.value)}
+                  className="w-full px-3 py-2 border rounded font-semibold text-[#222] bg-[#FAFAFA]"
+                >
+                  <option value="3 Piece">3 Piece (Shirt + Dupatta + Trouser/Shalwar)</option>
+                  <option value="2 Piece">2 Piece (Shirt + Dupatta / Shirt + Trouser)</option>
+                  <option value="1 Piece">1 Piece (Shirt / Kurti / Kaftan)</option>
+                  <option value="Shirt Dupatta">Shirt Dupatta</option>
+                  <option value="Shirt Shalwar">Shirt Shalwar</option>
+                </select>
+              </div>
+
+              {/* Stitching Selection (Stitched vs Unstitched) */}
+              <div>
+                <label className="block font-semibold mb-1 text-[#222]">Stitching Type *</label>
+                <select
+                  value={stitchingStatus}
+                  onChange={(e) => setStitchingStatus(e.target.value as any)}
+                  className="w-full px-3 py-2 border rounded font-semibold text-[#222] bg-[#FAFAFA]"
+                >
+                  <option value="Unstitched">Unstitched (3M Fabric Roll / Cutpiece)</option>
+                  <option value="Stitched">Stitched (Ready to Wear Pret / Tailored)</option>
+                  <option value="Both">Both (Available in Stitched & Unstitched)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1 text-[#222]">Slug URL</label>
                 <input
                   type="text"
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
-                  placeholder="e.g. luxury-pret"
+                  placeholder="e.g. winter-velvet"
                   className="w-full px-3 py-2 border rounded"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold mb-1">Banner Image URL</label>
+                <label className="block font-semibold mb-1 text-[#222]">Banner Image URL</label>
                 <input
                   type="text"
                   value={image}
@@ -141,7 +215,7 @@ export const AdminCategories: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-semibold mb-1">Description</label>
+                <label className="block font-semibold mb-1 text-[#222]">Description</label>
                 <textarea
                   rows={2}
                   value={description}
@@ -160,7 +234,7 @@ export const AdminCategories: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#222] text-white font-semibold rounded hover:bg-[#9E8055]"
+                  className="px-5 py-2 bg-[#222] text-white font-semibold rounded hover:bg-[#8B5E34]"
                 >
                   Save Category
                 </button>
