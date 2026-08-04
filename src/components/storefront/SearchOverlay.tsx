@@ -30,7 +30,7 @@ export const SearchOverlay: React.FC = () => {
 
   const handleSelectProduct = (productId: string) => {
     setSelectedProductId(productId);
-    setCurrentView('product');
+    setCurrentView('product-detail');
     setIsSearchOpen(false);
   };
 

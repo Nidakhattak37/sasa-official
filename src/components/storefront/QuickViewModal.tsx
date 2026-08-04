@@ -30,7 +30,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
 
   const handleFullDetails = () => {
     setSelectedProductId(product.id);
-    setCurrentView('product');
+    setCurrentView('product-detail');
     onClose();
   };
 

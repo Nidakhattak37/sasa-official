@@ -1,7 +1,14 @@
 import React from 'react';
+import { useApp } from '../../context/AppContext';
 import { Instagram, ShoppingBag } from 'lucide-react';
 
 export const InstagramGallery: React.FC = () => {
+  const { setCurrentView, setSelectedCategorySlug } = useApp();
+
+  const handleShopLook = () => {
+    setSelectedCategorySlug(null);
+    setCurrentView('shop');
+  };
   const instaPosts = [
     {
       img: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800',
@@ -44,6 +51,7 @@ export const InstagramGallery: React.FC = () => {
           {instaPosts.map((post, idx) => (
             <div
               key={idx}
+              onClick={handleShopLook}
               className="group relative aspect-[3/4] overflow-hidden rounded-lg bg-black/5 cursor-pointer"
             >
               <img

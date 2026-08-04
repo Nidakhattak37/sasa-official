@@ -12,8 +12,9 @@ import { AdminCMS } from './AdminCMS';
 import { AdminCustomers } from './AdminCustomers';
 import { AdminAnalytics } from './AdminAnalytics';
 import { AdminSettings } from './AdminSettings';
+import { AdminMenuSettings } from './AdminMenuSettings';
 import {
-  LayoutDashboard, ShoppingBag, Package, Layers, AlertTriangle, Tag, MessageSquare, Image, FileText, Users, BarChart3, Settings, LogOut, Store, Bell
+  LayoutDashboard, ShoppingBag, Package, Layers, AlertTriangle, Tag, MessageSquare, Image, FileText, Users, BarChart3, Settings, LogOut, Store, Bell, Menu
 } from 'lucide-react';
 
 export const AdminLayout: React.FC = () => {
@@ -36,6 +37,7 @@ export const AdminLayout: React.FC = () => {
     { id: 'coupons', label: 'Coupons & Vouchers', icon: <Tag className="w-4 h-4" /> },
     { id: 'reviews', label: 'Reviews Moderation', icon: <MessageSquare className="w-4 h-4" />, badge: pendingReviewsCount },
     { id: 'banners', label: 'Homepage Banners', icon: <Image className="w-4 h-4" /> },
+    { id: 'menu', label: 'Header Menu Settings', icon: <Menu className="w-4 h-4" /> },
     { id: 'cms', label: 'CMS & Legal Pages', icon: <FileText className="w-4 h-4" /> },
     { id: 'customers', label: 'Customers & CRM', icon: <Users className="w-4 h-4" /> },
     { id: 'analytics', label: 'Analytics Reports', icon: <BarChart3 className="w-4 h-4" /> },
@@ -190,6 +192,7 @@ export const AdminLayout: React.FC = () => {
           {activeTab === 'coupons' && <AdminCoupons />}
           {activeTab === 'reviews' && <AdminReviews />}
           {activeTab === 'banners' && <AdminBanners />}
+          {activeTab === 'menu' && <AdminMenuSettings />}
           {activeTab === 'cms' && <AdminCMS />}
           {activeTab === 'customers' && <AdminCustomers />}
           {activeTab === 'analytics' && <AdminAnalytics />}

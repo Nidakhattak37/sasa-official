@@ -52,9 +52,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2.5 text-[#AAA]">
               <li><button onClick={() => handleNav('shop', 'new-arrivals')} className="hover:text-white transition">New Arrivals</button></li>
               <li><button onClick={() => handleNav('shop', 'pret')} className="hover:text-white transition">Ready to Wear Pret</button></li>
-              <li><button onClick={() => handleNav('shop', 'luxury-pret')} className="hover:text-white transition">Luxury Pret Edit</button></li>
               <li><button onClick={() => handleNav('shop', 'unstitched')} className="hover:text-white transition">Unstitched Lawn Suits</button></li>
-              <li><button onClick={() => handleNav('shop', 'sale')} className="hover:text-white transition text-[#D8A48F]">Special Sale (-40%)</button></li>
             </ul>
           </div>
 
@@ -65,6 +63,7 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2.5 text-[#AAA]">
               <li><button onClick={() => handleNav('track')} className="hover:text-white transition flex items-center gap-1 font-semibold text-[#D4AF37]">Order Tracking →</button></li>
+              <li><button onClick={() => handleNav('write-review')} className="hover:text-white transition flex items-center gap-1 text-[#D4AF37] font-semibold">★ Write a Client Review</button></li>
               <li><button onClick={() => handleNav('account')} className="hover:text-white transition">My Account</button></li>
               <li><button onClick={() => handleNav('shipping-policy')} className="hover:text-white transition">Shipping & Delivery</button></li>
               <li><button onClick={() => handleNav('refund-policy')} className="hover:text-white transition">Returns & Exchanges</button></li>
@@ -82,17 +81,7 @@ export const Footer: React.FC = () => {
               <li><button onClick={() => handleNav('contact')} className="hover:text-white transition">Contact Us</button></li>
               <li><button onClick={() => handleNav('privacy-policy')} className="hover:text-white transition">Privacy Policy</button></li>
               <li><button onClick={() => handleNav('terms')} className="hover:text-white transition">Terms of Service</button></li>
-              <li className="pt-2">
-                <button
-                  onClick={() => {
-                    setUserRole(userRole === 'admin' ? 'customer' : 'admin');
-                    setCurrentView(userRole === 'admin' ? 'home' : 'admin');
-                  }}
-                  className="px-3 py-1 bg-[#333] hover:bg-[#D4AF37] hover:text-black text-white text-[10px] font-semibold uppercase rounded tracking-wider transition"
-                >
-                  {userRole === 'admin' ? 'Customer View' : 'Admin Panel Login'}
-                </button>
-              </li>
+
             </ul>
           </div>
 

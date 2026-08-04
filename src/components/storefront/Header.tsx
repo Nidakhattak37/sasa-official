@@ -11,27 +11,42 @@ export const Header: React.FC = () => {
     cart, wishlist,
     userRole, setUserRole,
     isCustomerAuthenticated, setIsCustomerAuthModalOpen,
-    currentUser
+    currentUser,
+    menuItems
   } = useApp();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const cartItemsCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  const navLinks = [
-    { label: 'Home', view: 'home', categorySlug: null },
-    { label: 'New Arrivals', view: 'shop', categorySlug: 'new-arrivals' },
-    { label: 'Pret', view: 'shop', categorySlug: 'pret' },
-    { label: 'Luxury Pret', view: 'shop', categorySlug: 'luxury-pret' },
-    { label: 'Unstitched', view: 'shop', categorySlug: 'unstitched' },
-    { label: 'Sale', view: 'shop', categorySlug: 'sale', badge: 'UP TO 40% OFF' },
-    { label: 'Track Order', view: 'track', categorySlug: null },
-    { label: 'Contact', view: 'contact', categorySlug: null },
+  // Dynamic menu items from admin configuration, excluding Luxury Pret as requested
+  const rawMenuItems = (menuItems && menuItems.length > 0) ? menuItems : [
+    { id: 'm-1', label: 'Home', targetType: 'view', targetValue: 'home' },
+    { id: 'm-2', label: 'New Arrivals', targetType: 'category', targetValue: 'new-arrivals' },
+    { id: 'm-3', label: 'Pret', targetType: 'category', targetValue: 'pret' },
+    { id: 'm-4', label: 'Unstitched', targetType: 'category', targetValue: 'unstitched' },
+    { id: 'm-5', label: 'Contact', targetType: 'view', targetValue: 'contact' },
   ];
 
-  const handleNavClick = (view: string, categorySlug: string | null) => {
-    setSelectedCategorySlug(categorySlug);
-    setCurrentView(view);
+  const activeMenuItems = rawMenuItems.filter(item => 
+    !item.label.toLowerCase().includes('luxury pret') && 
+    !item.targetValue.toLowerCase().includes('luxury-pret')
+  );
+
+  const handleMenuItemClick = (item: { targetType: string; targetValue: string }) => {
+    if (item.targetType === 'category') {
+      setSelectedCategorySlug(item.targetValue);
+      setCurrentView('shop');
+    } else if (item.targetType === 'view') {
+      setSelectedCategorySlug(null);
+      setCurrentView(item.targetValue);
+    } else if (item.targetType === 'page') {
+      setSelectedCategorySlug(null);
+      setCurrentView('cms-page');
+    } else {
+      setSelectedCategorySlug(null);
+      setCurrentView('shop');
+    }
     setMobileMenuOpen(false);
   };
 
@@ -45,13 +60,13 @@ export const Header: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#EAE4DC] transition-all">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 text-[#222] hover:text-[#9E8055] transition"
+            className="lg:hidden p-2 text-[#222] hover:text-[#9E8055] transition rounded-lg"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -60,7 +75,7 @@ export const Header: React.FC = () => {
           {/* Logo */}
           <div className="flex-1 lg:flex-none text-center lg:text-left">
             <button
-              onClick={() => handleNavClick('home', null)}
+              onClick={() => { setSelectedCategorySlug(null); setCurrentView('home'); }}
               className="inline-block group text-left"
             >
               <span className="font-serif text-2xl sm:text-3xl tracking-[0.2em] font-bold text-[#222222] uppercase group-hover:text-[#9E8055] transition">
@@ -74,25 +89,15 @@ export const Header: React.FC = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-7">
-            {navLinks.map((link) => {
-              const isActive = currentView === link.view && (link.categorySlug === null || true);
+            {activeMenuItems.map((item) => {
               return (
                 <button
-                  key={link.label}
-                  onClick={() => handleNavClick(link.view, link.categorySlug)}
-                  className={`relative text-xs font-medium uppercase tracking-[0.12em] transition-colors py-1 ${
-                    isActive ? 'text-[#222222] font-semibold' : 'text-[#555555] hover:text-[#9E8055]'
-                  }`}
+                  key={item.id}
+                  onClick={() => handleMenuItemClick(item)}
+                  className="relative text-xs font-medium uppercase tracking-[0.12em] text-[#444444] hover:text-[#9E8055] transition-colors py-1 group"
                 >
-                  {link.label}
-                  {link.badge && (
-                    <span className="ml-1.5 px-1.5 py-0.5 text-[9px] font-bold bg-[#D8A48F] text-white rounded-full">
-                      {link.badge}
-                    </span>
-                  )}
-                  {isActive && (
-                    <span className="absolute bottom-0 left-0 w-full h-[1.5px] bg-[#9E8055] rounded-full" />
-                  )}
+                  {item.label}
+                  <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-[#9E8055] transition-all duration-300 group-hover:w-full" />
                 </button>
               );
             })}
@@ -167,30 +172,25 @@ export const Header: React.FC = () => {
 
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-[#EAE4DC] px-6 py-6 space-y-4 shadow-lg animate-in slide-in-from-top-4 duration-200">
-          <div className="flex flex-col space-y-3">
-            {navLinks.map((link) => (
+        <div className="lg:hidden bg-white border-b border-[#EAE4DC] px-6 py-6 space-y-4 shadow-lg">
+          <div className="flex flex-col space-y-2">
+            {activeMenuItems.map((item) => (
               <button
-                key={link.label}
-                onClick={() => handleNavClick(link.view, link.categorySlug)}
-                className="text-left text-sm font-medium uppercase tracking-wider py-2 text-[#222222] border-b border-[#F2F2F2] flex items-center justify-between"
+                key={item.id}
+                onClick={() => handleMenuItemClick(item)}
+                className="text-left text-sm font-medium uppercase tracking-wider py-2.5 text-[#222222] border-b border-[#F2F2F2] flex items-center justify-between hover:text-[#9E8055] transition"
               >
-                <span>{link.label}</span>
-                {link.badge && (
-                  <span className="text-[10px] bg-[#D8A48F] text-white font-bold px-2 py-0.5 rounded-full">
-                    {link.badge}
-                  </span>
-                )}
+                <span>{item.label}</span>
               </button>
             ))}
             
-            <div className="pt-2 flex flex-col gap-2">
+            <div className="pt-3 flex flex-col gap-2">
               <button
                 onClick={() => {
                   setUserRole('admin');
                   setMobileMenuOpen(false);
                 }}
-                className="w-full py-2.5 bg-[#222] text-white text-xs font-semibold rounded uppercase tracking-wider text-center flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-[#222] text-white text-xs font-semibold rounded-lg uppercase tracking-wider text-center flex items-center justify-center gap-2 hover:bg-[#9E8055] transition"
               >
                 <Shield className="w-4 h-4 text-[#D4AF37]" />
                 <span>Admin Sign In / Control Panel</span>

@@ -1,19 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
-  Product, Category, Order, Coupon, Review, Banner, Customer, StoreSettings, CMSPage, CartItem, Currency, OrderStatus, MenuItem
+  Product, Category, Order, Coupon, Review, Banner, Customer, StoreSettings, CMSPage, CartItem, Currency, OrderStatus, MenuItem, InstantClassicsSection, DualEditorialSection
 } from '../types';
 import {
-  INITIAL_CATEGORIES, INITIAL_STORE_SETTINGS, INITIAL_CMS_PAGES
+  INITIAL_PRODUCTS, INITIAL_CATEGORIES, INITIAL_ORDERS, INITIAL_COUPONS, INITIAL_REVIEWS, INITIAL_BANNERS, INITIAL_CUSTOMERS,
+  INITIAL_STORE_SETTINGS, INITIAL_CMS_PAGES, DEFAULT_INSTANT_CLASSICS, DEFAULT_DUAL_EDITORIAL
 } from '../data/mockData';
 
 const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'm-1', label: 'Home', targetType: 'view', targetValue: 'home' },
   { id: 'm-2', label: 'New Arrivals', targetType: 'category', targetValue: 'new-arrivals' },
   { id: 'm-3', label: 'Pret', targetType: 'category', targetValue: 'pret' },
-  { id: 'm-4', label: 'Luxury Pret', targetType: 'category', targetValue: 'luxury-pret' },
-  { id: 'm-5', label: 'Unstitched', targetType: 'category', targetValue: 'unstitched' },
-  { id: 'm-6', label: 'Sale', targetType: 'category', targetValue: 'sale' },
-  { id: 'm-7', label: 'Contact', targetType: 'view', targetValue: 'contact' },
+  { id: 'm-4', label: 'Unstitched', targetType: 'category', targetValue: 'unstitched' },
+  { id: 'm-5', label: 'Contact', targetType: 'view', targetValue: 'contact' },
 ];
 
 interface AppContextType {
@@ -42,6 +41,10 @@ interface AppContextType {
   settings: StoreSettings;
   cmsPages: CMSPage[];
   menuItems: MenuItem[];
+  instantClassics: InstantClassicsSection;
+  dualEditorial: DualEditorialSection;
+  updateInstantClassics: (data: InstantClassicsSection) => void;
+  updateDualEditorial: (data: DualEditorialSection) => void;
 
   // Navigation Menu Management
   updateMenuItems: (items: MenuItem[]) => void;
@@ -63,6 +66,7 @@ interface AppContextType {
   wishlist: string[]; // product IDs
   toggleWishlist: (productId: string) => void;
   isInWishlist: (productId: string) => boolean;
+  clearWishlist: () => void;
 
   // Order Operations
   createOrder: (orderData: Omit<Order, 'id' | 'createdAt' | 'trackingCode' | 'timeline'>) => Order;
@@ -187,7 +191,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [reviews, setReviews] = useState<Review[]>(() => {
     const saved = localStorage.getItem('sasa_reviews');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.length > 0) return parsed;
+    }
+    return INITIAL_REVIEWS;
   });
 
   const [banners, setBanners] = useState<Banner[]>(() => {
@@ -208,6 +216,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [cmsPages, setCmsPages] = useState<CMSPage[]>(() => {
     const saved = localStorage.getItem('sasa_cms');
     return saved ? JSON.parse(saved) : INITIAL_CMS_PAGES;
+  });
+
+  const [instantClassics, setInstantClassics] = useState<InstantClassicsSection>(() => {
+    const saved = localStorage.getItem('sasa_instant_classics');
+    return saved ? JSON.parse(saved) : DEFAULT_INSTANT_CLASSICS;
+  });
+
+  const [dualEditorial, setDualEditorial] = useState<DualEditorialSection>(() => {
+    const saved = localStorage.getItem('sasa_dual_editorial');
+    return saved ? JSON.parse(saved) : DEFAULT_DUAL_EDITORIAL;
   });
 
   // Cart & Wishlist State
@@ -238,6 +256,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { localStorage.setItem('sasa_customers', JSON.stringify(customers)); }, [customers]);
   useEffect(() => { localStorage.setItem('sasa_settings', JSON.stringify(settings)); }, [settings]);
   useEffect(() => { localStorage.setItem('sasa_cms', JSON.stringify(cmsPages)); }, [cmsPages]);
+  useEffect(() => { localStorage.setItem('sasa_instant_classics', JSON.stringify(instantClassics)); }, [instantClassics]);
+  useEffect(() => { localStorage.setItem('sasa_dual_editorial', JSON.stringify(dualEditorial)); }, [dualEditorial]);
   useEffect(() => { localStorage.setItem('sasa_cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('sasa_wishlist', JSON.stringify(wishlist)); }, [wishlist]);
   useEffect(() => { localStorage.setItem('sasa_admin_authed', String(isAdminAuthenticated)); }, [isAdminAuthenticated]);
@@ -424,6 +444,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const isInWishlist = (productId: string) => wishlist.includes(productId);
 
+  const clearWishlist = () => {
+    setWishlist([]);
+    localStorage.removeItem('sasa_wishlist');
+  };
+
   // Order Functions
   const createOrder = (orderData: Omit<Order, 'id' | 'createdAt' | 'trackingCode' | 'timeline'>): Order => {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -601,6 +626,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCmsPages(prev => prev.map(p => p.id === page.id ? page : p));
   };
 
+  const updateInstantClassics = (data: InstantClassicsSection) => setInstantClassics(data);
+  const updateDualEditorial = (data: DualEditorialSection) => setDualEditorial(data);
+
   return (
     <AppContext.Provider value={{
       currentView, setCurrentView,
@@ -609,11 +637,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isSearchOpen, setIsSearchOpen,
       isCartDrawerOpen, setIsCartDrawerOpen,
       currency, setCurrency,
-      products, categories, orders, coupons, reviews, banners, customers, settings, cmsPages,
+      products, categories, orders, coupons, reviews, banners, customers, settings, cmsPages, menuItems, updateMenuItems,
+      instantClassics, dualEditorial, updateInstantClassics, updateDualEditorial,
       clearAllAdminRecords, restoreSampleData,
       cart, addToCart, removeFromCart, updateCartQuantity, clearCart,
       activeCoupon, applyCoupon, removeCoupon,
-      wishlist, toggleWishlist, isInWishlist,
+      wishlist, toggleWishlist, isInWishlist, clearWishlist,
       createOrder, updateOrderStatus, getOrderById,
       addProduct, updateProduct, deleteProduct, duplicateProduct,
       addCategory, updateCategory, deleteCategory,

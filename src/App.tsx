@@ -9,6 +9,8 @@ import { OrderConfirmationView } from './views/storefront/OrderConfirmationView'
 import { TrackOrderView } from './views/storefront/TrackOrderView';
 import { AccountView } from './views/storefront/AccountView';
 import { CMSPageView } from './views/storefront/CMSPageView';
+import { WriteReviewView } from './views/storefront/WriteReviewView';
+import { WishlistView } from './views/storefront/WishlistView';
 import { AdminLayout } from './views/admin/AdminLayout';
 import { AdminAuthView } from './views/admin/AdminAuthView';
 import { CustomerAuthModal } from './components/storefront/CustomerAuthModal';
@@ -39,8 +41,12 @@ const AppContent: React.FC = () => {
         return <OrderConfirmationView />;
       case 'track':
         return <TrackOrderView />;
+      case 'write-review':
+        return <WriteReviewView />;
       case 'account':
         return <AccountView />;
+      case 'wishlist':
+        return <WishlistView />;
       case 'about':
       case 'shipping-policy':
       case 'refund-policy':

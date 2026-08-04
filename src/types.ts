@@ -12,6 +12,8 @@ export interface Product {
   category: string;
   subcategory?: string;
   collection?: string;
+  collectionType?: string; // e.g. 'Summer Lawn', 'Winter Velvet', 'Spring Floral', 'Autumn Silk', 'Festive / Eid', 'Mid-Season'
+  pieceType?: string; // '3 Piece' | '2 Piece' | '1 Piece' | 'Shirt Dupatta' | 'Shirt Shalwar'
   description: string;
   fabricDetails: string;
   careInstructions?: string;
@@ -136,6 +138,31 @@ export interface Banner {
   ctaText: string;
   ctaLink: string;
   isActive: boolean;
+}
+
+export interface InstantClassicsSection {
+  tag: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  buttonText: string;
+  categorySlug: string;
+}
+
+export interface DualEditorialItem {
+  badge: string;
+  subtitle: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  buttonText: string;
+  categorySlug: string;
+}
+
+export interface DualEditorialSection {
+  left: DualEditorialItem;
+  right: DualEditorialItem;
 }
 
 export interface Customer {

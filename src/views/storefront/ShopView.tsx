@@ -15,6 +15,8 @@ export const ShopView: React.FC = () => {
   const { products, categories, selectedCategorySlug, setSelectedCategorySlug, setCurrentView } = useApp();
 
   const [selectedFabric, setSelectedFabric] = useState<string>('all');
+  const [selectedCollectionType, setSelectedCollectionType] = useState<string>('all');
+  const [selectedPieceType, setSelectedPieceType] = useState<string>('all');
   const [selectedSize, setSelectedSize] = useState<string>('all');
   const [maxPrice, setMaxPrice] = useState<number>(40000);
   const [sortBy, setSortBy] = useState<'featured' | 'newest' | 'price-low' | 'price-high' | 'rating'>('featured');
@@ -22,6 +24,8 @@ export const ShopView: React.FC = () => {
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
+  const collectionTypes = ['Summer Lawn', 'Winter Velvet & Khaddar', 'Spring Floral Edit', 'Autumn Silk & Karandi', 'Festive / Eid Special'];
+  const pieceTypes = ['3 Piece', '2 Piece', '1 Piece', 'Shirt Dupatta', 'Shirt Shalwar'];
   const fabrics = ['Lawn', 'Velvet', 'Silk', 'Chiffon', 'Organza', 'Cotton Net', 'Jacquard'];
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'Unstitched'];
 
@@ -37,6 +41,31 @@ export const ShopView: React.FC = () => {
           const matchCat = p.category.toLowerCase().replace(/\s+/g, '-') === selectedCategorySlug;
           if (!matchCat) return false;
         }
+      }
+
+      // Collection Type (Season) filter
+      if (selectedCollectionType !== 'all') {
+        const pColl = (p.collectionType || p.collection || '').toLowerCase();
+        if (!pColl.includes(selectedCollectionType.toLowerCase().slice(0, 6))) return false;
+      }
+
+      // Suit Composition / Piece Type filter (3 Piece, 2 Piece, 1 Piece, Shirt Dupatta, Shirt Shalwar)
+      if (selectedPieceType !== 'all') {
+        const pPiece = (p.pieceType || '').toLowerCase();
+        const pName = p.name.toLowerCase();
+        const pSub = (p.subcategory || '').toLowerCase();
+        const pDesc = p.description.toLowerCase();
+        const target = selectedPieceType.toLowerCase();
+
+        let isMatch = pPiece === target;
+        if (!isMatch) {
+          if (target === '3 piece') isMatch = pPiece.includes('3') || pName.includes('3-piece') || pName.includes('3 piece') || pSub.includes('3-piece');
+          else if (target === '2 piece') isMatch = pPiece.includes('2') || pName.includes('2-piece') || pName.includes('2 piece') || pDesc.includes('2-piece');
+          else if (target === '1 piece') isMatch = pPiece.includes('1') || pName.includes('1-piece') || pName.includes('1 piece') || pName.includes('kurti') || pName.includes('kaftan');
+          else if (target === 'shirt dupatta') isMatch = pPiece.includes('dupatta') || (pName.includes('dupatta') && !pName.includes('3'));
+          else if (target === 'shirt shalwar') isMatch = pPiece.includes('shalwar') || pPiece.includes('trouser') || pDesc.includes('shalwar') || pDesc.includes('pants');
+        }
+        if (!isMatch) return false;
       }
 
       // Fabric filter
@@ -60,10 +89,12 @@ export const ShopView: React.FC = () => {
       if (sortBy === 'rating') return b.rating - a.rating;
       return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
     });
-  }, [products, selectedCategorySlug, selectedFabric, selectedSize, maxPrice, sortBy]);
+  }, [products, selectedCategorySlug, selectedCollectionType, selectedPieceType, selectedFabric, selectedSize, maxPrice, sortBy]);
 
   const resetFilters = () => {
     setSelectedCategorySlug(null);
+    setSelectedCollectionType('all');
+    setSelectedPieceType('all');
     setSelectedFabric('all');
     setSelectedSize('all');
     setMaxPrice(40000);
@@ -175,6 +206,58 @@ export const ShopView: React.FC = () => {
                       }`}
                     >
                       <span>{cat.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Suit Composition / Piece Type Filter */}
+              <div className="space-y-2 pt-4 border-t border-[#EAE4DC]">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#222]">Suit Composition (Pieces)</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setSelectedPieceType('all')}
+                    className={`px-2.5 py-1 text-[11px] font-medium rounded border transition ${
+                      selectedPieceType === 'all' ? 'bg-[#222222] text-white border-[#222222]' : 'bg-white text-[#555] border-[#EAE4DC] hover:bg-[#F5F1EC]'
+                    }`}
+                  >
+                    All Options
+                  </button>
+                  {pieceTypes.map(piece => (
+                    <button
+                      key={piece}
+                      onClick={() => setSelectedPieceType(piece)}
+                      className={`px-2.5 py-1 text-[11px] font-semibold rounded border transition ${
+                        selectedPieceType === piece ? 'bg-[#8B5E34] text-white border-[#8B5E34] shadow-sm' : 'bg-white text-[#444] border-[#EAE4DC] hover:border-[#8B5E34]'
+                      }`}
+                    >
+                      {piece}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Seasonal Collection Type Filter */}
+              <div className="space-y-2 pt-4 border-t border-[#EAE4DC]">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#222]">Collection Type (Season)</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setSelectedCollectionType('all')}
+                    className={`px-2.5 py-1 text-[11px] rounded border transition ${
+                      selectedCollectionType === 'all' ? 'bg-[#1E1E24] text-white border-[#1E1E24]' : 'bg-white text-[#555] border-[#EAE4DC] hover:bg-[#F5F1EC]'
+                    }`}
+                  >
+                    All Seasons
+                  </button>
+                  {collectionTypes.map(type => (
+                    <button
+                      key={type}
+                      onClick={() => setSelectedCollectionType(type)}
+                      className={`px-2.5 py-1 text-[11px] rounded border transition ${
+                        selectedCollectionType === type ? 'bg-[#8B5E34] text-white border-[#8B5E34]' : 'bg-white text-[#555] border-[#EAE4DC] hover:bg-[#F5F1EC]'
+                      }`}
+                    >
+                      {type}
                     </button>
                   ))}
                 </div>

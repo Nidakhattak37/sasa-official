@@ -14,12 +14,12 @@ export const HeroBanner: React.FC = () => {
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Auto-slide every 6 seconds
+  // Auto-slide every 12 seconds (slower, comfortable pacing)
   useEffect(() => {
     if (activeBanners.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % activeBanners.length);
-    }, 6000);
+    }, 12000);
     return () => clearInterval(timer);
   }, [activeBanners.length]);
 
@@ -32,6 +32,9 @@ export const HeroBanner: React.FC = () => {
       const categorySlug = current.ctaLink.split('category=')[1];
       setSelectedCategorySlug(categorySlug);
       setCurrentView('shop');
+    } else if (current.ctaLink === 'pret' || current.ctaLink === 'unstitched') {
+      setSelectedCategorySlug(current.ctaLink);
+      setCurrentView('shop');
     } else {
       setSelectedCategorySlug(null);
       setCurrentView('shop');
@@ -39,29 +42,29 @@ export const HeroBanner: React.FC = () => {
   };
 
   return (
-    <section className="relative w-full h-[75vh] min-h-[540px] max-h-[780px] bg-[#111111] overflow-hidden group">
+    <section className="relative w-full h-[75vh] sm:h-[85vh] lg:h-[calc(100vh-80px)] min-h-[550px] max-h-[850px] bg-[#111111] overflow-hidden group">
       <AnimatePresence mode="wait">
         <motion.div
           key={current.id || currentIndex}
-          initial={{ opacity: 0, scale: 1.05 }}
+          initial={{ opacity: 0, scale: 1.02 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.1, ease: [0.25, 1, 0.5, 1] }}
           className="absolute inset-0"
         >
-          {/* Background Image */}
+          {/* 100% Full Bleed Edge-To-Edge Image */}
           <img
             src={current.imageUrl}
             alt={current.title}
-            className="w-full h-full object-cover object-top opacity-85"
+            className="w-full h-full object-cover object-top sm:object-center opacity-90 transition-transform duration-1000"
           />
 
-          {/* Luxury Soft Dark Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/20" />
+          {/* Luxury Soft Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/25" />
 
           {/* Content Overlay */}
-          <div className="absolute inset-0 flex items-center justify-center text-center px-6">
-            <div className="max-w-3xl mx-auto space-y-6">
+          <div className="absolute inset-0 flex items-end sm:items-center justify-center text-center pb-14 sm:pb-0 px-4 sm:px-6">
+            <div className="max-w-3xl mx-auto space-y-5">
               
               {current.subtitle && (
                 <motion.div
@@ -69,8 +72,8 @@ export const HeroBanner: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2, duration: 0.7 }}
                 >
-                  <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] font-semibold text-[#D4AF37] bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full border border-[#D4AF37]/40 shadow-lg">
-                    <Sparkles className="w-3.5 h-3.5" />
+                  <span className="inline-flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.3em] font-semibold text-[#D4AF37] bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full border border-[#D4AF37]/40 shadow-xl">
+                    <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
                     {current.subtitle}
                   </span>
                 </motion.div>
@@ -79,8 +82,8 @@ export const HeroBanner: React.FC = () => {
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.8 }}
-                className="font-serif text-4xl sm:text-6xl md:text-7xl font-normal text-white tracking-wide leading-tight drop-shadow-md"
+                transition={{ delay: 0.3, duration: 0.8 }}
+                className="font-serif text-3xl sm:text-6xl md:text-7xl font-normal text-white tracking-wide leading-tight drop-shadow-md"
               >
                 {current.title}
               </motion.h1>
@@ -88,25 +91,15 @@ export const HeroBanner: React.FC = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6, duration: 0.8 }}
-                className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
+                transition={{ delay: 0.4, duration: 0.8 }}
+                className="pt-2"
               >
                 <button
                   onClick={handleCtaClick}
-                  className="w-full sm:w-auto px-8 py-3.5 bg-[#FFFFFF] text-[#222222] font-semibold text-xs tracking-[0.2em] uppercase rounded-xl hover:bg-[#9E8055] hover:text-white transition-all flex items-center justify-center gap-2 group/btn shadow-xl"
+                  className="px-8 sm:px-10 py-3.5 sm:py-4 bg-white text-[#1E1E24] hover:bg-[#D4AF37] hover:text-[#1E1E24] font-bold text-xs tracking-[0.2em] uppercase rounded-xl transition-all duration-300 inline-flex items-center justify-center gap-2.5 shadow-2xl group/btn"
                 >
-                  <span>{current.ctaText || 'Explore Collection'}</span>
+                  <span>{current.ctaText || 'Shop Collection'}</span>
                   <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                </button>
-
-                <button
-                  onClick={() => {
-                    setSelectedCategorySlug('luxury-pret');
-                    setCurrentView('shop');
-                  }}
-                  className="w-full sm:w-auto px-8 py-3.5 bg-transparent border border-white/80 text-white font-semibold text-xs tracking-[0.2em] uppercase rounded-xl hover:bg-white/10 transition backdrop-blur-sm"
-                >
-                  Luxury Pret
                 </button>
               </motion.div>
 
@@ -120,29 +113,29 @@ export const HeroBanner: React.FC = () => {
         <>
           <button
             onClick={() => setCurrentIndex((prev) => (prev - 1 + activeBanners.length) % activeBanners.length)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 text-white/80 hover:text-white bg-black/40 hover:bg-black/70 rounded-full backdrop-blur-md transition shadow-lg opacity-80 group-hover:opacity-100"
+            className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 p-3 text-white/80 hover:text-white bg-black/40 hover:bg-black/80 rounded-full backdrop-blur-md transition shadow-lg border border-white/10"
             aria-label="Previous Slide"
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
           <button
             onClick={() => setCurrentIndex((prev) => (prev + 1) % activeBanners.length)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 text-white/80 hover:text-white bg-black/40 hover:bg-black/70 rounded-full backdrop-blur-md transition shadow-lg opacity-80 group-hover:opacity-100"
+            className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 p-3 text-white/80 hover:text-white bg-black/40 hover:bg-black/80 rounded-full backdrop-blur-md transition shadow-lg border border-white/10"
             aria-label="Next Slide"
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
 
           {/* Slide Indicator Dots */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center space-x-2 z-20">
+          <div className="absolute bottom-6 right-6 sm:right-12 flex items-center space-x-2 z-20">
             {activeBanners.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setCurrentIndex(idx)}
-                className={`h-2 rounded-full transition-all duration-300 ${
+                className={`h-1.5 rounded-full transition-all duration-300 ${
                   currentIndex % activeBanners.length === idx
                     ? 'w-8 bg-[#D4AF37]'
-                    : 'w-2 bg-white/50 hover:bg-white/80'
+                    : 'w-2 bg-white/40 hover:bg-white/80'
                 }`}
                 aria-label={`Go to slide ${idx + 1}`}
               />

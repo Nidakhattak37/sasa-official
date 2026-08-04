@@ -87,138 +87,128 @@ export const ProductDetailView: React.FC = () => {
           </div>
 
           {/* Product Layout: Gallery + Specs */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
             
-            {/* Left: Gallery (7 Cols) */}
-            <div className="lg:col-span-7 space-y-4">
+            {/* Left: Gallery (7 Cols) - Vertical Thumbnails + Main Image */}
+            <div className="lg:col-span-7 flex flex-col-reverse md:flex-row gap-4">
               
-              {/* Main Display Image */}
-              <div className="relative aspect-[3/4] bg-[#F5F1EC] rounded-xl overflow-hidden border border-[#EAE4DC] group">
-                <img
-                  src={product.images[selectedImageIdx] || product.images[0]}
-                  alt={product.name}
-                  className="w-full h-full object-cover object-top"
-                />
-
-                <button
-                  onClick={() => setIsZoomOpen(true)}
-                  className="absolute bottom-4 right-4 p-3 bg-white/90 hover:bg-white text-[#222] rounded-full shadow-lg backdrop-blur-sm transition flex items-center gap-1.5 text-xs font-semibold"
-                >
-                  <ZoomIn className="w-4 h-4 text-[#9E8055]" /> Zoom Image
-                </button>
-
-                {discountPercent && (
-                  <span className="absolute top-4 left-4 px-3 py-1 bg-[#D8A48F] text-white text-xs font-bold uppercase tracking-wider rounded">
-                    {discountPercent}% OFF
-                  </span>
-                )}
-              </div>
-
-              {/* Thumbnails Row */}
+              {/* Vertical Stacked Thumbnails */}
               {product.images.length > 1 && (
-                <div className="flex gap-3 overflow-x-auto pb-2">
+                <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-y-auto md:max-h-[620px] scrollbar-none pb-2 md:pb-0 md:w-24 shrink-0">
                   {product.images.map((img, idx) => (
                     <button
                       key={idx}
                       onClick={() => setSelectedImageIdx(idx)}
-                      className={`w-20 h-24 rounded-lg overflow-hidden border-2 transition ${
-                        selectedImageIdx === idx ? 'border-[#9E8055] scale-105 shadow-md' : 'border-transparent opacity-70 hover:opacity-100'
+                      className={`w-16 h-20 md:w-20 md:h-24 rounded-lg overflow-hidden border-2 transition shrink-0 ${
+                        selectedImageIdx === idx ? 'border-[#222222] ring-2 ring-[#222222]/20 scale-95 shadow-md' : 'border-[#EAE4DC] opacity-75 hover:opacity-100'
                       }`}
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <img src={img} alt={`View ${idx + 1}`} className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
               )}
 
-            </div>
+              {/* Main Display Image */}
+              <div className="relative flex-1 aspect-[3/4] bg-[#F5F1EC] rounded-xl overflow-hidden border border-[#EAE4DC] group">
+                <img
+                  src={product.images[selectedImageIdx] || product.images[0]}
+                  alt={product.name}
+                  className="w-full h-full object-cover object-top transition-all duration-300"
+                />
 
-            {/* Right: Product Purchase Details (5 Cols) */}
-            <div className="lg:col-span-5 space-y-6 bg-white p-6 sm:p-8 border border-[#EAE4DC] rounded-xl shadow-sm">
-              
-              {/* Category, SKU, Rating */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs text-[#888888] font-semibold uppercase tracking-wider">
-                  <span>{product.category} • SKU: {product.sku}</span>
-                  <span className="flex items-center gap-1 text-[#222]">
-                    <Star className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
-                    {product.rating} ({product.reviewsCount} verified reviews)
-                  </span>
-                </div>
-
-                <h1 className="font-serif text-3xl font-bold text-[#222222] leading-tight">
-                  {product.name}
-                </h1>
-                
-                {product.collection && (
-                  <span className="inline-block text-xs text-[#9E8055] font-semibold uppercase tracking-widest bg-[#F5F1EC] px-2.5 py-0.5 rounded">
-                    Collection: {product.collection}
-                  </span>
+                {/* Carousel Arrows */}
+                {product.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setSelectedImageIdx(prev => (prev === 0 ? product.images.length - 1 : prev - 1))}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/80 hover:bg-white text-[#222] shadow-md backdrop-blur-sm transition z-20"
+                      aria-label="Previous image"
+                    >
+                      <ChevronRight className="w-5 h-5 rotate-180" />
+                    </button>
+                    <button
+                      onClick={() => setSelectedImageIdx(prev => (prev === product.images.length - 1 ? 0 : prev + 1))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/80 hover:bg-white text-[#222] shadow-md backdrop-blur-sm transition z-20"
+                      aria-label="Next image"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </>
                 )}
+
+                <button
+                  onClick={() => setIsZoomOpen(true)}
+                  className="absolute bottom-4 right-4 p-3 bg-white/90 hover:bg-white text-[#222] rounded-full shadow-lg backdrop-blur-sm transition flex items-center gap-1.5 text-xs font-semibold z-10"
+                >
+                  <ZoomIn className="w-4 h-4 text-[#9E8055]" /> Zoom Image
+                </button>
+
+                <div className="absolute top-4 left-4 flex flex-col gap-1.5 z-10">
+                  {product.isSale && discountPercent && (
+                    <span className="px-3 py-1 bg-[#8B5E34] text-white text-xs font-bold uppercase tracking-wider rounded shadow-sm">
+                      {discountPercent}% OFF
+                    </span>
+                  )}
+                  {product.isBestSeller && (
+                    <span className="px-3 py-1 bg-[#222222] text-[#D4AF37] border border-[#D4AF37]/40 text-xs font-bold uppercase tracking-wider rounded shadow-sm">
+                      BEST SELLER
+                    </span>
+                  )}
+                  {product.isNewArrival && (
+                    <span className="px-3 py-1 bg-[#8A9A86] text-white text-xs font-bold uppercase tracking-wider rounded shadow-sm">
+                      NEW
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {/* Price & Stock */}
-              <div className="flex items-center justify-between pb-4 border-b border-[#EAE4DC]">
-                <div className="flex items-baseline gap-3">
-                  <span className="text-2xl font-bold text-[#222222]">
+            </div>
+
+            {/* Right: Product Purchase Details (5 Cols) - Matching Einka Screenshot */}
+            <div className="lg:col-span-5 space-y-6 bg-white p-6 sm:p-8 border border-[#EAE4DC] rounded-xl shadow-sm">
+              
+              {/* Product Title */}
+              <div className="space-y-2">
+                <h1 className="font-serif text-3xl font-normal text-[#1E1E24] tracking-tight">
+                  {product.name}
+                </h1>
+
+                {/* Price Display */}
+                <div className="flex items-baseline gap-3 pt-1">
+                  <span className="text-xl font-semibold text-[#1E1E24]">
                     {formatPrice(product.price, currency)}
                   </span>
-                  {product.originalPrice && (
-                    <span className="text-sm text-[#999999] line-through font-medium">
+                  {product.isSale && product.originalPrice && product.originalPrice > product.price && (
+                    <span className="text-sm text-gray-400 line-through font-normal">
                       {formatPrice(product.originalPrice, currency)}
                     </span>
                   )}
                 </div>
 
-                <div className="text-xs">
-                  {product.stock > 0 ? (
-                    <span className="flex items-center gap-1.5 text-green-700 font-semibold bg-green-50 px-2.5 py-1 rounded-full border border-green-200">
-                      <span className="w-2 h-2 rounded-full bg-green-600 animate-pulse" />
-                      In Stock ({product.stock} units)
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {(product.collectionType || product.collection) && (
+                    <span className="inline-block text-[11px] text-[#8B5E34] font-semibold uppercase tracking-widest bg-[#F5F1EC] px-2.5 py-0.5 rounded border border-[#EAE4DC]">
+                      {product.collectionType || product.collection}
                     </span>
-                  ) : (
-                    <span className="text-red-600 font-semibold bg-red-50 px-2.5 py-1 rounded-full">
-                      Out of Stock
+                  )}
+                  {product.pieceType && (
+                    <span className="inline-block text-[11px] text-white font-bold uppercase tracking-widest bg-[#222222] px-2.5 py-0.5 rounded shadow-sm">
+                      {product.pieceType}
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Color Options */}
-              {product.colors && product.colors.length > 0 && (
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#222] mb-2">
-                    Color: <span className="font-normal text-[#666]">{selectedColor}</span>
-                  </label>
-                  <div className="flex gap-2">
-                    {product.colors.map(c => (
-                      <button
-                        key={c.name}
-                        onClick={() => setSelectedColor(c.name)}
-                        className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition ${
-                          selectedColor === c.name ? 'border-[#9E8055] scale-110 shadow' : 'border-gray-200'
-                        }`}
-                        style={{ backgroundColor: c.hex }}
-                        title={c.name}
-                      >
-                        {selectedColor === c.name && <Check className="w-4 h-4 text-white drop-shadow" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Size Selector */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[#222]">
-                    Size: <span className="font-normal text-[#666]">{selectedSize}</span>
-                  </label>
+              <div className="space-y-2 pt-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-semibold text-[#222]">Size</label>
                   <button
                     onClick={() => setIsSizeGuideOpen(true)}
-                    className="text-[11px] text-[#9E8055] hover:underline flex items-center gap-1 font-medium"
+                    className="text-[11px] text-[#8B5E34] hover:underline flex items-center gap-1 font-medium"
                   >
-                    <Ruler className="w-3.5 h-3.5" /> Size Chart Guide
+                    <Ruler className="w-3.5 h-3.5" /> Size Guide
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -226,10 +216,10 @@ export const ProductDetailView: React.FC = () => {
                     <button
                       key={sz}
                       onClick={() => setSelectedSize(sz)}
-                      className={`px-4 py-2 text-xs font-semibold rounded border transition ${
+                      className={`min-w-[44px] h-10 px-3 text-xs font-medium border transition flex items-center justify-center ${
                         selectedSize === sz
-                          ? 'bg-[#222222] text-white border-[#222222] shadow'
-                          : 'bg-white text-[#333] border-[#EAE4DC] hover:border-[#9E8055]'
+                          ? 'bg-[#000000] text-white border-[#000000] font-bold'
+                          : 'bg-white text-[#333333] border-[#E5E5E5] hover:border-[#000000]'
                       }`}
                     >
                       {sz}
@@ -238,78 +228,98 @@ export const ProductDetailView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Quantity Selector */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#222] mb-2">
-                  Quantity
-                </label>
-                <div className="inline-flex items-center border border-[#EAE4DC] rounded bg-white">
+              {/* Quantity Stepper + Add to Cart Row (As per attached screenshot) */}
+              <div className="flex items-center gap-3 pt-2">
+                {/* Quantity box [- 1 +] */}
+                <div className="flex items-center border border-[#E5E5E5] h-12 bg-white rounded-none">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-3.5 py-1.5 text-sm text-[#555] hover:bg-[#F5F1EC] transition"
+                    className="w-10 h-full text-base text-[#555] hover:bg-gray-100 flex items-center justify-center transition"
                   >
-                    -
+                    −
                   </button>
-                  <span className="px-5 py-1.5 text-xs font-semibold">{quantity}</span>
+                  <span className="w-10 text-center text-xs font-bold text-[#1E1E24]">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="px-3.5 py-1.5 text-sm text-[#555] hover:bg-[#F5F1EC] transition"
+                    className="w-10 h-full text-base text-[#555] hover:bg-gray-100 flex items-center justify-center transition"
                   >
                     +
                   </button>
                 </div>
-              </div>
 
-              {/* Action CTA Buttons */}
-              <div className="space-y-3 pt-2">
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleAddToCart}
-                    className={`flex-1 py-3.5 px-6 rounded text-xs font-semibold uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg ${
-                      addedSuccess
-                        ? 'bg-green-700 text-white'
-                        : 'bg-[#222222] text-white hover:bg-[#9E8055]'
-                    }`}
-                  >
-                    {addedSuccess ? (
-                      <>
-                        <Check className="w-4 h-4" /> Added to Bag!
-                      </>
-                    ) : (
-                      <>
-                        <ShoppingBag className="w-4 h-4" /> Add to Shopping Bag
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => toggleWishlist(product.id)}
-                    className={`p-3.5 rounded border transition ${
-                      inWishlist ? 'bg-red-50 text-red-500 border-red-200' : 'border-[#EAE4DC] text-[#222] hover:bg-[#F5F1EC]'
-                    }`}
-                    title={inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
-                  >
-                    <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
-                  </button>
-                </div>
-
+                {/* Black Add to Cart Button */}
                 <button
-                  onClick={handleBuyNow}
-                  className="w-full py-3.5 bg-[#D4AF37] text-[#222222] text-xs font-bold uppercase tracking-widest rounded hover:bg-[#c39e2e] transition shadow"
+                  onClick={handleAddToCart}
+                  className={`flex-1 h-12 px-6 text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 ${
+                    addedSuccess
+                      ? 'bg-green-700 text-white'
+                      : 'bg-[#000000] text-white hover:bg-[#222222]'
+                  }`}
                 >
-                  Buy Now with Express Checkout
+                  {addedSuccess ? (
+                    <>
+                      <Check className="w-4 h-4" /> Added to cart
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag className="w-4 h-4" /> Add to cart
+                    </>
+                  )}
                 </button>
               </div>
 
-              {/* Guarantee badges */}
-              <div className="pt-4 border-t border-[#EAE4DC] grid grid-cols-2 gap-3 text-xs text-[#555]">
-                <div className="flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-[#9E8055]" />
-                  <span>3-5 Days Dispatch</span>
+              {/* Full Width Buy It Now Button */}
+              <button
+                onClick={handleBuyNow}
+                className="w-full h-12 bg-[#000000] hover:bg-[#222222] text-white text-xs font-bold uppercase tracking-wider transition flex items-center justify-center"
+              >
+                Buy it now
+              </button>
+
+              {/* Accordions Section: DETAILS, MATERIALS + CARE, SHIPPING + RETURNS */}
+              <div className="border-t border-[#EAE4DC] pt-4 space-y-3">
+                {/* DETAILS ACCORDION */}
+                <div className="border-b border-[#EAE4DC] pb-3">
+                  <details className="group" open>
+                    <summary className="flex items-center justify-between cursor-pointer list-none text-xs font-bold uppercase tracking-wider text-[#1E1E24]">
+                      <span>DETAILS</span>
+                      <span className="text-sm font-light transition group-open:rotate-180">−</span>
+                    </summary>
+                    <div className="mt-3 text-xs text-gray-600 leading-relaxed space-y-1.5">
+                      <p>{product.description}</p>
+                      {product.fabricDetails && (
+                        <p className="font-semibold text-[#8B5E34] pt-1">• {product.fabricDetails}</p>
+                      )}
+                    </div>
+                  </details>
                 </div>
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-[#9E8055]" />
-                  <span>Cash on Delivery</span>
+
+                {/* MATERIALS + CARE ACCORDION */}
+                <div className="border-b border-[#EAE4DC] pb-3">
+                  <details className="group">
+                    <summary className="flex items-center justify-between cursor-pointer list-none text-xs font-bold uppercase tracking-wider text-[#1E1E24]">
+                      <span>MATERIALS + CARE</span>
+                      <span className="text-sm font-light transition group-open:rotate-180">+</span>
+                    </summary>
+                    <div className="mt-3 text-xs text-gray-600 leading-relaxed space-y-1.5">
+                      <p>{product.careInstructions || 'Dry Clean Only recommended to preserve fine threadwork embroidery and scalloped organza borders.'}</p>
+                      <p className="text-[11px] text-gray-500">Fabric: {product.fabricDetails}</p>
+                    </div>
+                  </details>
+                </div>
+
+                {/* SHIPPING + RETURNS ACCORDION */}
+                <div className="border-b border-[#EAE4DC] pb-3">
+                  <details className="group">
+                    <summary className="flex items-center justify-between cursor-pointer list-none text-xs font-bold uppercase tracking-wider text-[#1E1E24]">
+                      <span>SHIPPING + RETURNS</span>
+                      <span className="text-sm font-light transition group-open:rotate-180">+</span>
+                    </summary>
+                    <div className="mt-3 text-xs text-gray-600 leading-relaxed space-y-1.5">
+                      <p>Fast nationwide express delivery via TCS within 3 to 5 business days.</p>
+                      <p>Hassle-free 14-day exchange policy for unstitched suits & sizing updates.</p>
+                    </div>
+                  </details>
                 </div>
               </div>
 
