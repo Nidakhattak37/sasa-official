@@ -22,7 +22,7 @@ export const NewArrivalsSlider: React.FC = () => {
   };
 
   return (
-    <section className="py-16 bg-[#FAFAFA] border-b border-[#EAE4DC] overflow-hidden">
+    <section className="py-16 bg-white border-b border-[#EAE4DC] overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header with Navigation */}

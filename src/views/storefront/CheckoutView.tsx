@@ -53,47 +53,63 @@ export const CheckoutView: React.FC = () => {
   const shippingFee = isFreeShip ? 0 : settings.defaultShippingFee;
   const grandTotal = Math.max(0, subtotal - discountAmount + shippingFee);
 
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0) return;
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const orderItems = cart.map(item => ({
-        productId: item.product.id,
-        productName: item.product.name,
-        selectedSize: item.selectedSize,
-        selectedColor: item.selectedColor,
-        quantity: item.quantity,
-        price: item.product.price,
-        image: item.product.images[0]
-      }));
+    const orderItems = cart.map(item => ({
+      productId: item.product.id,
+      productName: item.product.name,
+      selectedSize: item.selectedSize,
+      selectedColor: item.selectedColor,
+      quantity: item.quantity,
+      price: item.product.price,
+      image: item.product.images[0]
+    }));
 
-      const newOrder = createOrder({
-        customerName: address.fullName,
-        email: address.email,
-        phone: address.phone,
-        shippingAddress: address,
-        items: orderItems,
-        subtotal,
-        discount: discountAmount,
-        couponCode: activeCoupon?.code,
-        shippingFee,
-        tax: 0,
-        total: grandTotal,
-        paymentMethod,
-        paymentStatus: paymentMethod === 'Card' ? 'Paid' : 'Pending',
-        orderStatus: 'Confirmed',
-        estimatedDeliveryDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        customerNotes
+    const newOrder = createOrder({
+      customerName: address.fullName,
+      email: address.email,
+      phone: address.phone,
+      shippingAddress: address,
+      items: orderItems,
+      subtotal,
+      discount: discountAmount,
+      couponCode: activeCoupon?.code,
+      shippingFee,
+      tax: 0,
+      total: grandTotal,
+      paymentMethod,
+      paymentStatus: paymentMethod === 'Card' ? 'Paid' : 'Pending',
+      orderStatus: 'Confirmed',
+      estimatedDeliveryDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      customerNotes
+    });
+
+    // Send order notification email to store official email
+    try {
+      fetch('/api/send-order-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order: newOrder,
+          officialEmail: settings.email || 'info@sasaofficial.com'
+        })
+      }).catch(err => {
+        console.warn('Order email notification dispatched with status:', err);
       });
+    } catch (err) {
+      console.warn('Failed to call send-order-email endpoint:', err);
+    }
 
+    setTimeout(() => {
       setTrackSearch({ orderId: newOrder.id, contact: newOrder.phone });
       setPlacedOrderInfo(newOrder);
       setIsSubmitting(false);
       setCurrentView('confirmation');
-    }, 1200);
+    }, 800);
   };
 
   const pakistaniCities = [
@@ -102,7 +118,7 @@ export const CheckoutView: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+    <div className="min-h-screen flex flex-col bg-white">
       <AnnouncementBar />
       <Header />
 

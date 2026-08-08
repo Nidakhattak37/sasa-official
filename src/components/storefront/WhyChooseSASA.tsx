@@ -26,15 +26,15 @@ export const WhyChooseSASA: React.FC = () => {
   ];
 
   return (
-    <section className="py-14 bg-[#F5F1EC] border-b border-[#EAE4DC]">
+    <section className="py-14 bg-white border-b border-[#EAE4DC]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {features.map((item, idx) => (
             <div
               key={idx}
-              className="flex items-center space-x-4 p-4 bg-white/70 rounded-lg border border-[#EAE4DC] hover:bg-white hover:shadow-md transition duration-300"
+              className="flex items-center space-x-4 p-4 bg-white rounded-xl border border-[#EAE4DC] hover:shadow-md transition duration-300"
             >
-              <div className="p-3 bg-[#FAFAFA] rounded-full flex-shrink-0 border border-[#EAE4DC]">
+              <div className="p-3 bg-white rounded-full flex-shrink-0 border border-[#EAE4DC] shadow-sm">
                 {item.icon}
               </div>
               <div>

@@ -49,7 +49,7 @@ export const TrackOrderView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+    <div className="min-h-screen flex flex-col bg-white">
       <AnnouncementBar />
       <Header />
 

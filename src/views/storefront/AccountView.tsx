@@ -20,12 +20,12 @@ export const AccountView: React.FC = () => {
 
   if (!isCustomerAuthenticated) {
     return (
-      <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+      <div className="min-h-screen flex flex-col bg-white">
         <AnnouncementBar />
         <Header />
 
         <main className="flex-1 flex flex-col items-center justify-center p-6 text-center py-20">
-          <div className="w-16 h-16 bg-[#F5F1EC] text-[#9E8055] rounded-full flex items-center justify-center mb-4">
+          <div className="w-16 h-16 bg-white border border-[#EAE4DC] shadow-sm text-[#9E8055] rounded-full flex items-center justify-center mb-4">
             <User className="w-8 h-8" />
           </div>
           <h1 className="font-serif text-3xl font-bold text-[#222] mb-2">Sign In to SASA Privé</h1>
@@ -55,7 +55,7 @@ export const AccountView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+    <div className="min-h-screen flex flex-col bg-white">
       <AnnouncementBar />
       <Header />
 

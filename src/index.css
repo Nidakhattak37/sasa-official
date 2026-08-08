@@ -36,3 +36,31 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Continuous Moving Marquee Animation for Announcement Bar */
+@keyframes marquee-scroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-announcement-marquee {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: marquee-scroll 24s linear infinite;
+}
+
+.animate-announcement-marquee:hover {
+  animation-play-state: paused;
+}
+
+@media (max-width: 640px) {
+  .animate-announcement-marquee {
+    animation-duration: 18s;
+  }
+}
+

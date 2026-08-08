@@ -155,7 +155,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=1000',
       'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1000'
     ],
-    sizes: ['Unstitched', 'Stitched XS', 'Stitched S', 'Stitched M', 'Stitched L', 'Custom Stitching'],
+    sizes: ['Unstitched', 'Stitched XS', 'Stitched S', 'Stitched M', 'Stitched L'],
     colors: [
       { name: 'Sky Blue & Pink Floral', hex: '#A3D5E8' }
     ],
@@ -191,7 +191,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       '/images/black_olive_suit.jpg',
       'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=1000'
     ],
-    sizes: ['Unstitched', 'Stitched XS', 'Stitched S', 'Stitched M', 'Stitched L', 'Custom Stitching'],
+    sizes: ['Unstitched', 'Stitched XS', 'Stitched S', 'Stitched M', 'Stitched L'],
     colors: [
       { name: 'Mustard Yellow & Blue', hex: '#E5C158' }
     ],
@@ -224,7 +224,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       '/images/black_olive_suit.jpg',
       'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=1200'
     ],
-    sizes: ['Unstitched', 'Stitched XS', 'Stitched S', 'Stitched M', 'Stitched L', 'Custom Stitching'],
+    sizes: ['Unstitched', 'Stitched XS', 'Stitched S', 'Stitched M', 'Stitched L'],
     colors: [
       { name: 'Black & Olive Green', hex: '#1E1E1E' }
     ],
@@ -250,7 +250,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     collection: 'Winter Velvet Royale',
     collectionType: 'Winter Velvet & Khaddar',
     pieceType: 'Shirt Shalwar',
-    description: 'An exquisite royal navy micro-velvet tunic intricately embroidered with tilla and dabka handiwork around the neckline and sleeves. Styled with custom tailored raw silk pants and a tissue organza dupatta.',
+    description: 'An exquisite royal navy micro-velvet tunic intricately embroidered with tilla and dabka handiwork around the neckline and sleeves. Styled with tailored raw silk pants and a tissue organza dupatta.',
     fabricDetails: 'Top: 100% Micro Velvet | Dupatta: Sheer Tissue Organza | Bottom: Pure Raw Silk',
     careInstructions: 'Dry Clean Only. Steam iron on reverse.',
     images: [
@@ -258,7 +258,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1200',
       'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=1200'
     ],
-    sizes: ['XS', 'S', 'M', 'L', 'XL', 'Custom Stitching'],
+    sizes: ['XS', 'S', 'M', 'L', 'XL'],
     colors: [
       { name: 'Royal Navy', hex: '#1B263B' },
       { name: 'Deep Emerald', hex: '#133C27' },
@@ -354,7 +354,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&q=80&w=1200',
       'https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&q=80&w=1200'
     ],
-    sizes: ['S', 'M', 'L', 'Custom Stitching'],
+    sizes: ['S', 'M', 'L'],
     colors: [
       { name: 'Champagne Gold', hex: '#D4AF37' },
       { name: 'Midnight Black', hex: '#222222' }
@@ -448,7 +448,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&q=80&w=1200',
       'https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?auto=format&fit=crop&q=80&w=1200'
     ],
-    sizes: ['Free Size', 'Custom Stitching'],
+    sizes: ['Free Size'],
     colors: [
       { name: 'Emerald Green', hex: '#0B6623' },
       { name: 'Deep Carmine', hex: '#960018' }
@@ -761,7 +761,7 @@ export const INITIAL_REVIEWS: Review[] = [
     customerName: 'Hira Tariq',
     customerEmail: 'hira.t@yahoo.com',
     rating: 5,
-    comment: 'Wore this to a mehendi function in Islamabad and received so many compliments! True to picture.',
+    comment: 'Wore this to a mehendi function in Islamabad and received so many compliments! True to picture and color vibrancy.',
     date: '2026-07-29',
     status: 'Approved'
   },
@@ -772,8 +772,42 @@ export const INITIAL_REVIEWS: Review[] = [
     customerName: 'Mariam Ali',
     customerEmail: 'mariam.a@gmail.com',
     rating: 5,
-    comment: 'Breathtaking embroidery and finish. Worth every single penny.',
+    comment: 'Breathtaking embroidery and finish. Worth every single penny. The tilla work has a subtle royal sheen.',
     date: '2026-07-31',
+    status: 'Approved'
+  },
+  {
+    id: 'rev-4',
+    productId: 'prod-new-skyblue',
+    productName: 'Nayla Chikankari Sky Blue Lawn Suit',
+    customerName: 'Ayesha Khan',
+    customerEmail: 'ayesha.k@gmail.com',
+    rating: 5,
+    comment: 'The Chikankari hand embroidery is pristine! Delivered within 2 days in a gorgeous bespoke presentation box.',
+    date: '2026-08-01',
+    status: 'Approved',
+    adminReply: 'Thank you Ayesha! Chikankari is our signature artisan specialty.'
+  },
+  {
+    id: 'rev-5',
+    productId: 'prod-new-yellow',
+    productName: 'Meher Ochre Yellow Festive 3-Piece',
+    customerName: 'Zainab Bilgrami',
+    customerEmail: 'zainab.b@hotmail.com',
+    rating: 5,
+    comment: 'Lawn quality is ultra-breathable for warm summer events. The printed organza dupatta drapes effortlessly.',
+    date: '2026-08-03',
+    status: 'Approved'
+  },
+  {
+    id: 'rev-6',
+    productId: 'prod-new-black',
+    productName: 'Shab-e-Noor Noir Black Tilla Lawn',
+    customerName: 'Fatima Noor',
+    customerEmail: 'fatima.noor@outlook.com',
+    rating: 5,
+    comment: 'The gold tilla accents on deep jet black are simply hypnotic. Perfect evening wear for formal dinners.',
+    date: '2026-08-04',
     status: 'Approved'
   }
 ];
@@ -852,7 +886,7 @@ export const INITIAL_CUSTOMERS: Customer[] = [
 
 export const INITIAL_STORE_SETTINGS: StoreSettings = {
   storeName: 'SASA Official',
-  email: 'care@sasaofficial.com',
+  email: 'info@sasaofficial.com',
   phone: '+92 42 111 727 200',
   address: 'SASA House, M.M. Alam Road, Gulberg III, Lahore, Pakistan',
   currency: 'PKR',
@@ -898,7 +932,7 @@ We ship worldwide via DHL Express. International orders usually arrive in 4 - 7 
 We take immense pride in our quality control. However, if you receive a damaged product or require a different size, you may request an exchange within 14 days of delivery.
 
 - Items must be unworn, unwashed, with original tags intact.
-- Customized stitched garments are non-returnable unless defective.
+- Items purchased on clearance sale are eligible for exchange only in case of transit defect.
 - To initiate an exchange, contact us via WhatsApp at +92 300 1234567 or email care@sasaofficial.com.`,
     lastUpdated: '2026-07-01'
   },
@@ -909,8 +943,8 @@ We take immense pride in our quality control. However, if you receive a damaged 
     content: `**Q: Do you offer Cash on Delivery (COD)?**
 Yes, COD is available for all orders within Pakistan.
 
-**Q: Can I get my unstitched suit custom stitched by SASA?**
-Yes! We offer professional custom tailoring. Simply select "Custom Stitching" on the product page and specify your measurement preferences.
+**Q: Are standard ready-to-wear sizes true to fit?**
+Yes! Please consult our comprehensive Size Guide on any product page for chest, waist, and length measurements in inches.
 
 **Q: How do I track my order status?**
 Visit our dedicated Order Tracking page, enter your Order Number (e.g., SASA-9842) along with your Phone Number or Email to view real-time delivery steps.`,

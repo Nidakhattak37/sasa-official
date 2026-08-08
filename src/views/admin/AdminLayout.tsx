@@ -45,7 +45,7 @@ export const AdminLayout: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F4F4F6] flex text-[#222222]">
+    <div className="min-h-screen bg-white flex text-[#222222]">
       
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-[#1E1E24] text-[#D5D5D5] flex flex-col justify-between border-r border-[#2E2E38] shadow-xl flex-shrink-0">

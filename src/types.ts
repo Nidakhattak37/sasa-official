@@ -11,11 +11,12 @@ export interface Product {
   originalPrice?: number;
   category: string;
   subcategory?: string;
+  department?: string; // 'Apparel' | 'Footwear / Shoes' | 'Watches & Timepieces' | 'Handbags & Clutches' | 'Jewelry' | 'Fragrances' | 'Accessories' | string
   collection?: string;
-  collectionType?: string; // e.g. 'Summer Lawn', 'Winter Velvet', 'Spring Floral', 'Autumn Silk', 'Festive / Eid', 'Mid-Season'
-  season?: 'Summer Collection' | 'Winter Collection' | 'All Season';
-  pieceType?: string; // '3 Piece' | '2 Piece' | '1 Piece' | 'Shirt Dupatta' | 'Shirt Shalwar'
-  stitchingStatus?: 'Stitched' | 'Unstitched';
+  collectionType?: string; // e.g. 'Summer Lawn', 'Winter Velvet', 'Spring Floral', 'Autumn Silk', 'Festive / Eid', 'Mid-Season', 'Timeless Classics'
+  season?: string; // 'Summer Collection' | 'Winter Collection' | 'All Season' | 'Non-Seasonal / Timeless' | string
+  pieceType?: string; // '3 Piece' | '2 Piece' | '1 Piece' | 'Single Item' | 'Pair' | 'Set' | string
+  stitchingStatus?: string; // 'Stitched' | 'Unstitched' | 'Not Applicable' | string
   description: string;
   fabricDetails: string;
   careInstructions?: string;
@@ -40,9 +41,10 @@ export interface Category {
   slug: string;
   image: string;
   description: string;
-  season?: 'Summer Collection' | 'Winter Collection' | 'All Season';
-  pieceType?: string; // e.g. '3 Piece' | '2 Piece' | '1 Piece' | 'Shirt Dupatta' | 'Shirt Shalwar'
-  stitchingStatus?: 'Stitched' | 'Unstitched' | 'Both';
+  department?: string; // 'Clothing' | 'Footwear & Shoes' | 'Watches & Timepieces' | 'Handbags' | 'Jewelry' | 'Fragrance' | 'Shawls & Wraps' | string
+  season?: string; // 'Summer Collection' | 'Winter Collection' | 'All Season' | 'Non-Seasonal / Timeless' | string
+  pieceType?: string; // e.g. '3 Piece' | '2 Piece' | '1 Piece' | 'Single Item' | 'Pair' | 'Set' | string
+  stitchingStatus?: string; // 'Stitched' | 'Unstitched' | 'Both' | 'Not Applicable' | string
   isFeatured?: boolean;
   subcategories: string[];
 }

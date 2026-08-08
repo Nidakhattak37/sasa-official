@@ -25,7 +25,7 @@ export const WishlistView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-[#222222] flex flex-col font-sans">
+    <div className="min-h-screen bg-white text-[#222222] flex flex-col font-sans">
       <AnnouncementBar />
       <Header />
 

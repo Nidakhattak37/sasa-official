@@ -70,7 +70,7 @@ export const ProductDetailView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+    <div className="min-h-screen flex flex-col bg-white">
       <AnnouncementBar />
       <Header />
 
@@ -110,7 +110,7 @@ export const ProductDetailView: React.FC = () => {
               )}
 
               {/* Main Display Image */}
-              <div className="relative flex-1 aspect-[3/4] bg-[#F5F1EC] rounded-xl overflow-hidden border border-[#EAE4DC] group">
+              <div className="relative flex-1 aspect-[3/4] bg-white rounded-xl overflow-hidden border border-[#EAE4DC] group">
                 <img
                   src={product.images[selectedImageIdx] || product.images[0]}
                   alt={product.name}

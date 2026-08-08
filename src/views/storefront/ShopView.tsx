@@ -102,7 +102,7 @@ export const ShopView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+    <div className="min-h-screen flex flex-col bg-white">
       <AnnouncementBar />
       <Header />
 
@@ -119,7 +119,7 @@ export const ShopView: React.FC = () => {
               </span>
             </div>
 
-            <div className="bg-[#F5F1EC] border border-[#EAE4DC] rounded-xl p-6 sm:p-8 text-center space-y-2">
+            <div className="bg-white border border-[#EAE4DC] rounded-xl p-6 sm:p-8 text-center space-y-2 shadow-sm">
               <span className="text-xs font-semibold uppercase tracking-[0.25em] text-[#9E8055]">
                 SASA Official Collection
               </span>

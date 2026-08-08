@@ -33,7 +33,7 @@ export const InstagramGallery: React.FC = () => {
   ];
 
   return (
-    <section className="py-16 bg-[#FAFAFA] border-b border-[#EAE4DC]">
+    <section className="py-16 bg-white border-b border-[#EAE4DC]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}

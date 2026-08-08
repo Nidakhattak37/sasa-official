@@ -14,7 +14,7 @@ export const OrderConfirmationView: React.FC = () => {
   if (!lastOrder) return null;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+    <div className="min-h-screen flex flex-col bg-white">
       <AnnouncementBar />
       <Header />
 
@@ -41,7 +41,7 @@ export const OrderConfirmationView: React.FC = () => {
             </p>
 
             {/* Quick Spec Card */}
-            <div className="p-4 bg-[#F5F1EC] rounded-lg border border-[#EAE4DC] grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-left my-6">
+            <div className="p-4 bg-white rounded-lg border border-[#EAE4DC] grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-left my-6 shadow-sm">
               <div>
                 <span className="block text-[10px] text-gray-500 uppercase font-semibold">Order ID</span>
                 <strong className="text-[#222]">{lastOrder.id}</strong>

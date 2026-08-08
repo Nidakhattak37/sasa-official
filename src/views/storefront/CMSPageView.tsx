@@ -29,7 +29,7 @@ export const CMSPageView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+    <div className="min-h-screen flex flex-col bg-white">
       <AnnouncementBar />
       <Header />
 
@@ -57,7 +57,7 @@ export const CMSPageView: React.FC = () => {
             {currentView === 'contact' && (
               <div className="pt-8 border-t border-[#EAE4DC] space-y-8">
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs bg-[#F5F1EC] p-6 rounded-xl border border-[#EAE4DC]">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs bg-white p-6 rounded-xl border border-[#EAE4DC] shadow-sm">
                   <div className="space-y-1">
                     <MapPin className="w-5 h-5 text-[#9E8055]" />
                     <strong className="block text-[#222]">Flagship Boutique:</strong>

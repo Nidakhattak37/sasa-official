@@ -31,7 +31,7 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
               Standard Women's Size Guide
             </h3>
             <p className="text-xs text-[#777777]">
-              All measurements are in inches. Custom stitching options are available at checkout.
+              All measurements are in inches. Standard sizing for pret and stitched apparel.
             </p>
           </div>
         </div>
@@ -100,7 +100,7 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
             Fitting Advice
           </h4>
           <p>
-            If your measurements fall between two sizes, we recommend selecting the larger size for a loose, comfortable drape. For bespoke fitting, choose <strong>Custom Stitching</strong> when placing your order.
+            If your measurements fall between two sizes, we recommend selecting the larger size for a comfortable, flattering fit and drape.
           </p>
         </div>
 

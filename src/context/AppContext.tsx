@@ -171,7 +171,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return [];
     }
     const saved = localStorage.getItem('sasa_products');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        const parsed: Product[] = JSON.parse(saved);
+        return parsed.map(p => ({
+          ...p,
+          sizes: (p.sizes || []).filter(sz => sz !== 'Custom Stitching' && sz !== 'Customized Stitching')
+        }));
+      } catch {
+        return [];
+      }
+    }
+    return [];
   });
 
   const [categories, setCategories] = useState<Category[]>(() => {
