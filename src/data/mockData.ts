@@ -933,7 +933,7 @@ We take immense pride in our quality control. However, if you receive a damaged 
 
 - Items must be unworn, unwashed, with original tags intact.
 - Items purchased on clearance sale are eligible for exchange only in case of transit defect.
-- To initiate an exchange, contact us via WhatsApp at +92 300 1234567 or email care@sasaofficial.com.`,
+- To initiate an exchange, contact us via WhatsApp at +92 300 1234567 or email info@sasaofficial.com.`,
     lastUpdated: '2026-07-01'
   },
   {

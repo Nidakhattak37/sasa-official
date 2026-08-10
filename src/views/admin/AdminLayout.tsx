@@ -13,14 +13,16 @@ import { AdminCustomers } from './AdminCustomers';
 import { AdminAnalytics } from './AdminAnalytics';
 import { AdminSettings } from './AdminSettings';
 import { AdminMenuSettings } from './AdminMenuSettings';
+import { AdminSalesCampaigns } from './AdminSalesCampaigns';
+import { AdminTeamManagement } from './AdminTeamManagement';
 import {
-  LayoutDashboard, ShoppingBag, Package, Layers, AlertTriangle, Tag, MessageSquare, Image, FileText, Users, BarChart3, Settings, LogOut, Store, Bell, Menu
+  LayoutDashboard, ShoppingBag, Package, Layers, AlertTriangle, Tag, MessageSquare, Image, FileText, Users, BarChart3, Settings, LogOut, Store, Bell, Menu, Percent, ShieldCheck
 } from 'lucide-react';
 
 export const AdminLayout: React.FC = () => {
   const {
     userRole, setUserRole, setCurrentView, orders, products, reviews,
-    logoutAdmin, clearAllAdminRecords, restoreSampleData
+    currentAdmin, logoutAdmin, clearAllAdminRecords, restoreSampleData
   } = useApp();
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -32,6 +34,7 @@ export const AdminLayout: React.FC = () => {
     { id: 'dashboard', label: 'Dashboard Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
     { id: 'orders', label: 'Order Fulfillment', icon: <ShoppingBag className="w-4 h-4" />, badge: pendingOrdersCount },
     { id: 'products', label: 'Product Inventory', icon: <Package className="w-4 h-4" /> },
+    { id: 'sales', label: 'Sales & Discounts', icon: <Percent className="w-4 h-4" /> },
     { id: 'categories', label: 'Categories Architecture', icon: <Layers className="w-4 h-4" /> },
     { id: 'inventory', label: 'Stock & Warehouse', icon: <AlertTriangle className="w-4 h-4" />, badge: lowStockCount > 0 ? lowStockCount : null, badgeColor: 'bg-amber-500' },
     { id: 'coupons', label: 'Coupons & Vouchers', icon: <Tag className="w-4 h-4" /> },
@@ -40,6 +43,7 @@ export const AdminLayout: React.FC = () => {
     { id: 'menu', label: 'Header Menu Settings', icon: <Menu className="w-4 h-4" /> },
     { id: 'cms', label: 'CMS & Legal Pages', icon: <FileText className="w-4 h-4" /> },
     { id: 'customers', label: 'Customers & CRM', icon: <Users className="w-4 h-4" /> },
+    { id: 'team', label: 'Admin Users & Roles', icon: <ShieldCheck className="w-4 h-4" /> },
     { id: 'analytics', label: 'Analytics Reports', icon: <BarChart3 className="w-4 h-4" /> },
     { id: 'settings', label: 'Store Settings', icon: <Settings className="w-4 h-4" /> }
   ];
@@ -95,17 +99,6 @@ export const AdminLayout: React.FC = () => {
         <div className="p-4 border-t border-[#2E2E38] space-y-2">
           <button
             onClick={() => {
-              setUserRole('customer');
-              setCurrentView('home');
-            }}
-            className="w-full py-2.5 px-3 bg-[#2A2A33] hover:bg-[#333340] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-2 transition border border-gray-700"
-          >
-            <Store className="w-4 h-4 text-[#D4AF37]" />
-            <span>Switch to Storefront</span>
-          </button>
-
-          <button
-            onClick={() => {
               logoutAdmin();
             }}
             className="w-full py-2.5 px-3 bg-red-950/40 hover:bg-red-900/60 text-red-300 text-xs font-semibold rounded-lg flex items-center justify-center gap-2 transition border border-red-900/50"
@@ -130,6 +123,20 @@ export const AdminLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-3">
+            {/* View Storefront Link */}
+            <button
+              onClick={() => {
+                setUserRole('customer');
+                setCurrentView('home');
+                if (typeof window !== 'undefined') window.history.pushState(null, '', '/');
+              }}
+              className="px-3 py-1.5 bg-[#222] text-white hover:bg-[#8B5E34] text-xs font-semibold rounded-lg transition flex items-center gap-1.5 shadow-2xs"
+              title="Preview live customer storefront"
+            >
+              <Store className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span className="hidden md:inline">View Storefront</span>
+            </button>
+
             {/* Quick Record Management Buttons */}
             <button
               onClick={() => {
@@ -164,11 +171,11 @@ export const AdminLayout: React.FC = () => {
 
             <div className="flex items-center space-x-2 pl-3 border-l border-gray-200">
               <div className="w-8 h-8 rounded-full bg-[#222] text-[#D4AF37] font-serif font-bold text-xs flex items-center justify-center border border-[#D4AF37]">
-                A
+                {(currentAdmin?.name || 'Admin Director').charAt(0).toUpperCase()}
               </div>
               <div className="text-left text-xs hidden sm:block">
-                <span className="block font-bold text-[#222]">Admin Director</span>
-                <span className="text-[10px] text-gray-400">admin@sasaofficial.com</span>
+                <span className="block font-bold text-[#222]">{currentAdmin?.name || 'Admin Director'}</span>
+                <span className="text-[10px] text-gray-400">{currentAdmin?.email || 'info@sasaofficial.com'}</span>
               </div>
 
               <button
@@ -187,6 +194,7 @@ export const AdminLayout: React.FC = () => {
           {activeTab === 'dashboard' && <AdminDashboard onNavigateTab={(tab) => setActiveTab(tab)} />}
           {activeTab === 'orders' && <AdminOrders />}
           {activeTab === 'products' && <AdminProducts />}
+          {activeTab === 'sales' && <AdminSalesCampaigns />}
           {activeTab === 'categories' && <AdminCategories />}
           {activeTab === 'inventory' && <AdminInventory />}
           {activeTab === 'coupons' && <AdminCoupons />}
@@ -195,6 +203,7 @@ export const AdminLayout: React.FC = () => {
           {activeTab === 'menu' && <AdminMenuSettings />}
           {activeTab === 'cms' && <AdminCMS />}
           {activeTab === 'customers' && <AdminCustomers />}
+          {activeTab === 'team' && <AdminTeamManagement />}
           {activeTab === 'analytics' && <AdminAnalytics />}
           {activeTab === 'settings' && <AdminSettings />}
         </main>

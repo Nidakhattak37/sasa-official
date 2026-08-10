@@ -5,7 +5,7 @@ import { Shield, Lock, Mail, Eye, EyeOff, ArrowLeft, KeyRound, CheckCircle2 } fr
 export const AdminAuthView: React.FC = () => {
   const { loginAdmin, setCurrentView, setUserRole } = useApp();
 
-  const [email, setEmail] = useState('admin@sasaofficial.com');
+  const [email, setEmail] = useState('info@sasaofficial.com');
   const [password, setPassword] = useState('admin123');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -20,15 +20,15 @@ export const AdminAuthView: React.FC = () => {
       const success = loginAdmin(email, password);
       setIsLoading(false);
       if (!success) {
-        setErrorMsg('Invalid director credentials. Use admin@sasaofficial.com / admin123');
+        setErrorMsg('Invalid director credentials. Use info@sasaofficial.com / admin123');
       }
     }, 400);
   };
 
   const handleQuickDemo = () => {
-    setEmail('admin@sasaofficial.com');
+    setEmail('info@sasaofficial.com');
     setPassword('admin123');
-    loginAdmin('admin@sasaofficial.com', 'admin123');
+    loginAdmin('info@sasaofficial.com', 'admin123');
   };
 
   return (
@@ -85,7 +85,7 @@ export const AdminAuthView: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@sasaofficial.com"
+                placeholder="info@sasaofficial.com"
                 className="w-full pl-10 pr-4 py-3 bg-[#141418] border border-[#2E2E38] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] transition"
               />
             </div>

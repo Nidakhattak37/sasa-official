@@ -49,6 +49,7 @@ export const AdminProducts: React.FC = () => {
   const [price, setPrice] = useState<number>(12000);
   const [originalPrice, setOriginalPrice] = useState<number>(15000);
   const [stock, setStock] = useState<number>(20);
+  const [year, setYear] = useState<number | string>(2025);
   const [sku, setSku] = useState('');
   const [fabricDetails, setFabricDetails] = useState('');
   const [description, setDescription] = useState('');
@@ -97,6 +98,7 @@ export const AdminProducts: React.FC = () => {
     setPrice(12900);
     setOriginalPrice(15900);
     setStock(15);
+    setYear(2025);
     setSku(`SASA-ITEM-${Math.floor(1000 + Math.random() * 9000)}`);
     setFabricDetails('Pure Chiffon Dupatta with Embroidered Lawn Shirt');
     setDescription('Intricately crafted luxury piece featuring artisanal craftsmanship and bespoke styling.');
@@ -126,6 +128,7 @@ export const AdminProducts: React.FC = () => {
     setPrice(p.price);
     setOriginalPrice(p.originalPrice || p.price);
     setStock(p.stock);
+    setYear(p.year || 2025);
     setSku(p.sku);
     setFabricDetails(p.fabricDetails);
     setDescription(p.description);
@@ -214,6 +217,7 @@ export const AdminProducts: React.FC = () => {
       price: Number(price),
       originalPrice: Number(originalPrice),
       stock: Number(stock),
+      year: year ? Number(year) : undefined,
       sku: sku.trim() || `SASA-${Date.now()}`,
       fabricDetails: fabricDetails.trim(),
       description: description.trim(),
@@ -361,11 +365,18 @@ export const AdminProducts: React.FC = () => {
                       <span className="px-2 py-0.5 bg-white text-[#8B5E34] text-[10px] font-semibold rounded border border-[#EAE4DC] inline-block shadow-2xs">
                         {p.category}
                       </span>
-                      {p.pieceType && (
-                        <span className="px-2 py-0.5 bg-[#222] text-white text-[9px] font-bold rounded tracking-wider uppercase inline-block w-fit">
-                          {p.pieceType}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {p.pieceType && (
+                          <span className="px-1.5 py-0.5 bg-[#222] text-white text-[9px] font-bold rounded tracking-wider uppercase inline-block">
+                            {p.pieceType}
+                          </span>
+                        )}
+                        {p.year && (
+                          <span className="px-1.5 py-0.5 bg-[#F5F1EC] text-[#9E8055] text-[9px] font-bold rounded border border-[#EAE4DC]">
+                            {p.year}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="p-3 text-gray-500 font-mono text-[11px]">{p.sku}</td>
@@ -618,6 +629,31 @@ export const AdminProducts: React.FC = () => {
                     onChange={(e) => setStock(Number(e.target.value))}
                     className="w-full px-3 py-2 bg-white border border-[#EAE4DC] rounded-lg font-bold"
                   />
+                </div>
+
+                {/* Collection / Manufacturing Year (Internal Admin Only - Hidden from visitors) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-[#222]">Collection Year</label>
+                    <span className="text-[10px] text-[#9E8055] font-semibold bg-[#F5F1EC] px-1.5 py-0.5 rounded border border-[#EAE4DC]">
+                      Hidden from visitors
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={year || '2025'}
+                      onChange={(e) => setYear(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-white border border-[#EAE4DC] rounded-lg focus:ring-1 focus:ring-[#9E8055] font-bold text-[#222]"
+                    >
+                      <option value="2026">2026 (Upcoming Edition)</option>
+                      <option value="2025">2025 (Current Year)</option>
+                      <option value="2024">2024 (Archive / Previous)</option>
+                      <option value="2023">2023 (Archive Edition)</option>
+                      <option value="2022">2022 (Heritage)</option>
+                      <option value="2021">2021 (Heritage)</option>
+                      <option value="2020">2020 (Heritage)</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="sm:col-span-2">

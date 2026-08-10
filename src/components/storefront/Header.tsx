@@ -155,16 +155,6 @@ export const Header: React.FC = () => {
                 </span>
               )}
             </button>
-
-            {/* Switch to Admin Control Panel */}
-            <button
-              onClick={() => setUserRole('admin')}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#222222] hover:bg-[#9E8055] text-white text-[11px] font-bold uppercase tracking-wider rounded-lg transition shadow-sm"
-              title="Open Admin Control Panel"
-            >
-              <Shield className="w-3.5 h-3.5 text-[#D4AF37]" />
-              <span>Admin</span>
-            </button>
           </div>
 
         </div>
@@ -183,19 +173,6 @@ export const Header: React.FC = () => {
                 <span>{item.label}</span>
               </button>
             ))}
-            
-            <div className="pt-3 flex flex-col gap-2">
-              <button
-                onClick={() => {
-                  setUserRole('admin');
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full py-2.5 bg-[#222] text-white text-xs font-semibold rounded-lg uppercase tracking-wider text-center flex items-center justify-center gap-2 hover:bg-[#9E8055] transition"
-              >
-                <Shield className="w-4 h-4 text-[#D4AF37]" />
-                <span>Admin Sign In / Control Panel</span>
-              </button>
-            </div>
           </div>
         </div>
       )}

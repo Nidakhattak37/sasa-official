@@ -55,7 +55,7 @@ export const AnnouncementBar: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Side: Currency Selector & Admin Switcher Controls */}
+        {/* Right Side: Currency Selector */}
         <div className="flex items-center space-x-1.5 sm:space-x-3 flex-shrink-0 z-20 pl-2 bg-[#1E1E24] shadow-[-8px_0_12px_#1E1E24]">
           {/* Currency Switcher */}
           <div className="flex items-center space-x-1 text-[10px] sm:text-[11px] bg-[#2A2A30] px-2 py-0.5 sm:py-1 rounded-md border border-[#444] shadow-xs">
@@ -72,25 +72,6 @@ export const AnnouncementBar: React.FC = () => {
               <option value="GBP" className="bg-[#222]">GBP (£)</option>
             </select>
           </div>
-
-          {/* Admin Switcher Button */}
-          <button
-            onClick={() => {
-              if (userRole === 'admin') {
-                setUserRole('customer');
-                setCurrentView('home');
-              } else {
-                setUserRole('admin');
-                setCurrentView('admin');
-              }
-            }}
-            className="flex items-center gap-1 text-[10px] sm:text-[11px] bg-[#D4AF37] text-[#1E1E24] hover:bg-[#E5C158] font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md transition shadow-xs cursor-pointer"
-            title={userRole === 'admin' ? 'Switch to Storefront View' : 'Open Store Management Admin'}
-          >
-            <UserCheck className="w-3 h-3 flex-shrink-0" />
-            <span className="hidden sm:inline">{userRole === 'admin' ? 'Storefront' : 'Admin Panel'}</span>
-            <span className="sm:hidden">{userRole === 'admin' ? 'Store' : 'Admin'}</span>
-          </button>
         </div>
 
       </div>

@@ -88,8 +88,8 @@ export const EinkaShowcaseSlider: React.FC = () => {
         const singleSetWidth = el.scrollWidth / 3;
 
         if (singleSetWidth > 0) {
-          // Brisk, lightweight, silky smooth glide speed (~130 pixels per second)
-          const stepPx = (130 * delta) / 1000;
+          // Slow, serene, luxury showcase glide speed (~16 pixels per second)
+          const stepPx = (16 * delta) / 1000;
           el.scrollLeft += stepPx;
 
           // Seamless wrap: when entering the 3rd set, reset back to middle set

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
-  Product, Category, Order, Coupon, Review, Banner, Customer, StoreSettings, CMSPage, CartItem, Currency, OrderStatus, MenuItem, InstantClassicsSection, DualEditorialSection
+  Product, Category, Order, Coupon, Review, Banner, Customer, StoreSettings, CMSPage, CartItem, Currency, OrderStatus, MenuItem, InstantClassicsSection, DualEditorialSection, SaleCampaign, AdminUser
 } from '../types';
 import {
   INITIAL_PRODUCTS, INITIAL_CATEGORIES, INITIAL_ORDERS, INITIAL_COUPONS, INITIAL_REVIEWS, INITIAL_BANNERS, INITIAL_CUSTOMERS,
@@ -98,6 +98,22 @@ interface AppContextType {
   updateSettings: (newSettings: StoreSettings) => void;
   updateCMSPage: (page: CMSPage) => void;
 
+  // Sale Campaigns Management
+  saleCampaigns: SaleCampaign[];
+  addSaleCampaign: (campaign: Omit<SaleCampaign, 'id' | 'createdAt'>) => void;
+  updateSaleCampaign: (campaign: SaleCampaign) => void;
+  deleteSaleCampaign: (id: string) => void;
+  applySaleCampaign: (campaignId: string) => void;
+  revertSaleCampaign: (campaignId: string) => void;
+  restoreAllOriginalPrices: () => void;
+
+  // Team & Admin Users Management
+  adminUsers: AdminUser[];
+  currentAdmin: AdminUser | null;
+  addAdminUser: (admin: Omit<AdminUser, 'id' | 'createdAt'>) => { success: boolean; message: string };
+  updateAdminUser: (admin: AdminUser) => void;
+  removeAdminUser: (id: string) => { success: boolean; message: string };
+
   // Authentication & Roles
   userRole: 'customer' | 'admin';
   setUserRole: (role: 'customer' | 'admin') => void;
@@ -122,6 +138,46 @@ interface AppContextType {
   setTrackSearch: (data: { orderId: string; contact: string }) => void;
 }
 
+const INITIAL_ADMIN_USERS: AdminUser[] = [
+  {
+    id: 'admin-1',
+    name: 'Admin Director',
+    email: 'info@sasaofficial.com',
+    password: 'admin123',
+    role: 'Super Admin',
+    status: 'active',
+    createdAt: '2025-01-01',
+    lastLogin: '2025-01-01'
+  }
+];
+
+const INITIAL_SALE_CAMPAIGNS: SaleCampaign[] = [
+  {
+    id: 'sale-1',
+    name: '2024 Collection Clearance',
+    targetType: 'year',
+    targetValue: '2024',
+    discountPercentage: 25,
+    isActive: false,
+    createdAt: '2025-01-10'
+  },
+  {
+    id: 'sale-2',
+    name: 'Unstitched Festive Promo',
+    targetType: 'category',
+    targetValue: 'Unstitched',
+    discountPercentage: 20,
+    isActive: false,
+    createdAt: '2025-01-15'
+  }
+];
+
+const isAdminRoute = (pathname: string) => {
+  if (typeof window === 'undefined') return false;
+  const p = (pathname || window.location.pathname || '').toLowerCase().replace(/\/$/, '');
+  return p === '/sasa/admin' || p === '/admin' || p.startsWith('/sasa/admin');
+};
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -133,9 +189,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState<boolean>(false);
   const [currency, setCurrency] = useState<Currency>('PKR');
 
+  // User & Role State - Checks if URL is /sasa/admin
+  const [userRole, setUserRole] = useState<'customer' | 'admin'>(() => {
+    if (typeof window !== 'undefined' && isAdminRoute(window.location.pathname)) {
+      return 'admin';
+    }
+    return 'customer';
+  });
+
   // Admin Auth State
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     return localStorage.getItem('sasa_admin_authed') === 'true';
+  });
+
+  // Admin Users & Team State
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>(() => {
+    const saved = localStorage.getItem('sasa_admin_users');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {
+        return INITIAL_ADMIN_USERS;
+      }
+    }
+    return INITIAL_ADMIN_USERS;
+  });
+
+  const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(() => {
+    const saved = localStorage.getItem('sasa_current_admin');
+    if (saved) {
+      try { return JSON.parse(saved); } catch { return null; }
+    }
+    return null;
+  });
+
+  // Sale Campaigns State
+  const [saleCampaigns, setSaleCampaigns] = useState<SaleCampaign[]>(() => {
+    const saved = localStorage.getItem('sasa_sale_campaigns');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        return INITIAL_SALE_CAMPAIGNS;
+      }
+    }
+    return INITIAL_SALE_CAMPAIGNS;
   });
 
   // Customer Auth State
@@ -251,9 +351,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [activeCoupon, setActiveCoupon] = useState<Coupon | null>(null);
-
-  // User & Role State
-  const [userRole, setUserRole] = useState<'customer' | 'admin'>('customer');
   const [trackSearch, setTrackSearch] = useState<{ orderId: string; contact: string }>({ orderId: '', contact: '' });
 
   // Save to LocalStorage effects
@@ -273,6 +370,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { localStorage.setItem('sasa_wishlist', JSON.stringify(wishlist)); }, [wishlist]);
   useEffect(() => { localStorage.setItem('sasa_admin_authed', String(isAdminAuthenticated)); }, [isAdminAuthenticated]);
   useEffect(() => { localStorage.setItem('sasa_customer_authed', String(isCustomerAuthenticated)); }, [isCustomerAuthenticated]);
+  useEffect(() => { localStorage.setItem('sasa_admin_users', JSON.stringify(adminUsers)); }, [adminUsers]);
+  useEffect(() => { localStorage.setItem('sasa_sale_campaigns', JSON.stringify(saleCampaigns)); }, [saleCampaigns]);
+  useEffect(() => {
+    if (currentAdmin) {
+      localStorage.setItem('sasa_current_admin', JSON.stringify(currentAdmin));
+    } else {
+      localStorage.removeItem('sasa_current_admin');
+    }
+  }, [currentAdmin]);
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem('sasa_current_customer', JSON.stringify(currentUser));
@@ -280,6 +386,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.removeItem('sasa_current_customer');
     }
   }, [currentUser]);
+
+  // URL listener for /sasa/admin route
+  useEffect(() => {
+    const checkUrlRoute = () => {
+      if (typeof window !== 'undefined') {
+        const isAdm = isAdminRoute(window.location.pathname);
+        if (isAdm && userRole !== 'admin') {
+          setUserRole('admin');
+        }
+      }
+    };
+
+    window.addEventListener('popstate', checkUrlRoute);
+    checkUrlRoute();
+    return () => window.removeEventListener('popstate', checkUrlRoute);
+  }, [userRole]);
+
+  // Sync URL when userRole changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (userRole === 'admin') {
+        if (!isAdminRoute(window.location.pathname)) {
+          window.history.pushState(null, '', '/sasa/admin');
+        }
+      }
+    }
+  }, [userRole]);
 
   const updateMenuItems = (items: MenuItem[]) => {
     setMenuItems(items);
@@ -311,27 +444,200 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCustomers(INITIAL_CUSTOMERS);
   };
 
+  // Sale Campaigns Management Engine
+  const addSaleCampaign = (campaignData: Omit<SaleCampaign, 'id' | 'createdAt'>) => {
+    const newCamp: SaleCampaign = {
+      ...campaignData,
+      id: `sale-${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    setSaleCampaigns(prev => [newCamp, ...prev]);
+    if (newCamp.isActive) {
+      applySaleCampaignLogic(newCamp);
+    }
+  };
+
+  const updateSaleCampaign = (updated: SaleCampaign) => {
+    setSaleCampaigns(prev => prev.map(c => c.id === updated.id ? updated : c));
+    if (updated.isActive) {
+      applySaleCampaignLogic(updated);
+    } else {
+      revertSaleCampaignLogic(updated);
+    }
+  };
+
+  const deleteSaleCampaign = (id: string) => {
+    const target = saleCampaigns.find(c => c.id === id);
+    if (target && target.isActive) {
+      revertSaleCampaignLogic(target);
+    }
+    setSaleCampaigns(prev => prev.filter(c => c.id !== id));
+  };
+
+  const applySaleCampaignLogic = (campaign: SaleCampaign) => {
+    setProducts(prev => prev.map(prod => {
+      let isMatch = false;
+      if (campaign.targetType === 'category') {
+        const prodCat = (prod.category || '').toLowerCase();
+        const targetCat = (campaign.targetValue || '').toLowerCase();
+        isMatch = prodCat.includes(targetCat) || targetCat.includes(prodCat);
+      } else if (campaign.targetType === 'pieceType') {
+        isMatch = (prod.pieceType || '').toLowerCase() === (campaign.targetValue || '').toLowerCase();
+      } else if (campaign.targetType === 'year') {
+        const prodYear = prod.year ? String(prod.year) : '';
+        isMatch = prodYear === String(campaign.targetValue);
+      } else if (campaign.targetType === 'all') {
+        isMatch = true;
+      }
+
+      if (isMatch) {
+        const originalBasePrice = prod.originalPrice || prod.price;
+        const discountMultiplier = (100 - campaign.discountPercentage) / 100;
+        const newSalePrice = Math.round(originalBasePrice * discountMultiplier);
+        return {
+          ...prod,
+          originalPrice: originalBasePrice,
+          price: newSalePrice,
+          isSale: true
+        };
+      }
+      return prod;
+    }));
+  };
+
+  const revertSaleCampaignLogic = (campaign: SaleCampaign) => {
+    setProducts(prev => prev.map(prod => {
+      let isMatch = false;
+      if (campaign.targetType === 'category') {
+        const prodCat = (prod.category || '').toLowerCase();
+        const targetCat = (campaign.targetValue || '').toLowerCase();
+        isMatch = prodCat.includes(targetCat) || targetCat.includes(prodCat);
+      } else if (campaign.targetType === 'pieceType') {
+        isMatch = (prod.pieceType || '').toLowerCase() === (campaign.targetValue || '').toLowerCase();
+      } else if (campaign.targetType === 'year') {
+        const prodYear = prod.year ? String(prod.year) : '';
+        isMatch = prodYear === String(campaign.targetValue);
+      } else if (campaign.targetType === 'all') {
+        isMatch = true;
+      }
+
+      if (isMatch && prod.originalPrice) {
+        return {
+          ...prod,
+          price: prod.originalPrice,
+          isSale: false
+        };
+      }
+      return prod;
+    }));
+  };
+
+  const applySaleCampaign = (campaignId: string) => {
+    const campaign = saleCampaigns.find(c => c.id === campaignId);
+    if (!campaign) return;
+    const updated = { ...campaign, isActive: true };
+    setSaleCampaigns(prev => prev.map(c => c.id === campaignId ? updated : c));
+    applySaleCampaignLogic(updated);
+  };
+
+  const revertSaleCampaign = (campaignId: string) => {
+    const campaign = saleCampaigns.find(c => c.id === campaignId);
+    if (!campaign) return;
+    const updated = { ...campaign, isActive: false };
+    setSaleCampaigns(prev => prev.map(c => c.id === campaignId ? updated : c));
+    revertSaleCampaignLogic(updated);
+  };
+
+  const restoreAllOriginalPrices = () => {
+    setProducts(prev => prev.map(prod => ({
+      ...prod,
+      price: prod.originalPrice || prod.price,
+      isSale: false
+    })));
+    setSaleCampaigns(prev => prev.map(c => ({ ...c, isActive: false })));
+  };
+
+  // Admin Users & Team Management
+  const addAdminUser = (adminData: Omit<AdminUser, 'id' | 'createdAt'>) => {
+    const formattedEmail = adminData.email.trim().toLowerCase();
+    const existing = adminUsers.find(a => a.email.toLowerCase() === formattedEmail);
+    if (existing) {
+      return { success: false, message: 'An administrator with this email already exists.' };
+    }
+    const newAdmin: AdminUser = {
+      ...adminData,
+      email: formattedEmail,
+      id: `admin-${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    setAdminUsers(prev => [newAdmin, ...prev]);
+    return { success: true, message: `Administrator ${newAdmin.name} added successfully.` };
+  };
+
+  const updateAdminUser = (updated: AdminUser) => {
+    setAdminUsers(prev => prev.map(a => a.id === updated.id ? updated : a));
+    if (currentAdmin && currentAdmin.id === updated.id) {
+      setCurrentAdmin(updated);
+    }
+  };
+
+  const removeAdminUser = (id: string) => {
+    if (adminUsers.length <= 1) {
+      return { success: false, message: 'Cannot remove the last remaining administrator.' };
+    }
+    if (currentAdmin && currentAdmin.id === id) {
+      return { success: false, message: 'You cannot remove your own active administrator account.' };
+    }
+    setAdminUsers(prev => prev.filter(a => a.id !== id));
+    return { success: true, message: 'Administrator removed successfully.' };
+  };
+
   // Admin Auth Logic
   const loginAdmin = (email: string, pass: string): boolean => {
-    // Standard credential validation
-    if (email.trim().toLowerCase() === 'admin@sasaofficial.com' && pass === 'admin123') {
+    const formattedEmail = email.trim().toLowerCase();
+    const foundAdmin = adminUsers.find(a => a.email.toLowerCase() === formattedEmail && a.password === pass);
+    
+    if (foundAdmin) {
+      if (foundAdmin.status === 'Inactive') {
+        return false;
+      }
+      const updatedAdmin = {
+        ...foundAdmin,
+        lastLogin: new Date().toISOString().split('T')[0]
+      };
+      updateAdminUser(updatedAdmin);
+      setCurrentAdmin(updatedAdmin);
       setIsAdminAuthenticated(true);
       setUserRole('admin');
+      if (typeof window !== 'undefined' && !isAdminRoute(window.location.pathname)) {
+        window.history.pushState(null, '', '/sasa/admin');
+      }
       return true;
     }
-    // Allow any non-empty input for convenience if user wants custom login
-    if (email.trim() && pass.trim()) {
+
+    // Default master credentials fallback
+    if ((formattedEmail === 'info@sasaofficial.com' || formattedEmail === 'admin@sasaofficial.com') && pass === 'admin123') {
+      const master = adminUsers[0] || INITIAL_ADMIN_USERS[0];
+      setCurrentAdmin(master);
       setIsAdminAuthenticated(true);
       setUserRole('admin');
+      if (typeof window !== 'undefined' && !isAdminRoute(window.location.pathname)) {
+        window.history.pushState(null, '', '/sasa/admin');
+      }
       return true;
     }
+
     return false;
   };
 
   const logoutAdmin = () => {
     setIsAdminAuthenticated(false);
+    setCurrentAdmin(null);
     setUserRole('customer');
     setCurrentView('home');
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.history.pushState(null, '', '/');
+    }
   };
 
   // Customer Auth Logic
@@ -661,6 +967,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addReview, updateReviewStatus, replyReview,
       addBanner, updateBanner, deleteBanner,
       updateSettings, updateCMSPage,
+      saleCampaigns, addSaleCampaign, updateSaleCampaign, deleteSaleCampaign, applySaleCampaign, revertSaleCampaign, restoreAllOriginalPrices,
+      adminUsers, currentAdmin, addAdminUser, updateAdminUser, removeAdminUser,
       userRole, setUserRole,
       isAdminAuthenticated, loginAdmin, logoutAdmin,
       isCustomerAuthenticated, currentUser, setCurrentUser,

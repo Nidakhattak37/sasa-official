@@ -30,6 +30,7 @@ export interface Product {
   isNewArrival?: boolean;
   isSale?: boolean;
   tags?: string[];
+  year?: number | string; // Catalog Year (hidden from visitors, used for admin inventory & sales)
   rating: number;
   reviewsCount: number;
   createdAt: string;
@@ -215,3 +216,27 @@ export interface MenuItem {
 }
 
 export type Currency = 'PKR' | 'USD' | 'AED' | 'GBP';
+
+export interface SaleCampaign {
+  id: string;
+  name: string;
+  targetType: 'all' | 'category' | 'year' | 'collection' | 'pieceType';
+  targetValue: string; // e.g. '2024', '3 Piece', 'Pret', 'Unstitched', 'All Products'
+  discountPercentage: number; // e.g. 20 (for 20% off)
+  isActive: boolean;
+  startDate?: string;
+  endDate?: string;
+  createdAt: string;
+  appliedCount?: number;
+}
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  password?: string;
+  role: 'super_admin' | 'catalog_manager' | 'order_manager' | 'marketing_manager' | 'Super Admin' | 'Catalog Manager' | 'Order Dispatcher' | 'Marketing Manager';
+  status: 'active' | 'inactive';
+  createdAt: string;
+  lastLogin?: string;
+}

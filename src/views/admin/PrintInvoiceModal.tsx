@@ -51,7 +51,7 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ order, onC
               <h1 className="font-serif text-3xl font-bold tracking-[0.2em] text-[#222]">SASA OFFICIAL</h1>
               <p className="text-[10px] uppercase tracking-widest text-[#777] mt-0.5">Luxury Pakistani Fashion</p>
               <p className="text-[11px] text-gray-500 mt-2">M.M. Alam Road, Gulberg III, Lahore, Pakistan</p>
-              <p className="text-[11px] text-gray-500">Helpline: +92 42 111 727 200 | care@sasaofficial.com</p>
+              <p className="text-[11px] text-gray-500">Helpline: +92 42 111 727 200 | info@sasaofficial.com</p>
             </div>
 
             <div className="text-right">
