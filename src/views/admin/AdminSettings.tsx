@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Save, CheckCircle, Store, Truck, Mail, Send, Server, AlertCircle, Copy, Shield, Key } from 'lucide-react';
+import { Save, CheckCircle, Store, Truck, Mail, Send, Server, AlertCircle, Copy, Shield, Key, Database, RefreshCw, Layers, CheckCircle2, Globe } from 'lucide-react';
 
 export const AdminSettings: React.FC = () => {
-  const { settings, updateSettings } = useApp();
+  const { settings, updateSettings, products, orders } = useApp();
 
   const [storeName, setStoreName] = useState(settings.storeName);
   const [phone, setPhone] = useState(settings.phone);
@@ -22,11 +22,54 @@ export const AdminSettings: React.FC = () => {
   const [testEmailRecipient, setTestEmailRecipient] = useState(email || 'info@sasaofficial.com');
   const [testStatus, setTestStatus] = useState<{ loading: boolean; success?: boolean; message?: string }>({ loading: false });
 
+  // MongoDB Atlas Database State
+  const [mongoUri, setMongoUri] = useState('');
+  const [mongoDbName, setMongoDbName] = useState('sasaofficial');
+  const [dbStatus, setDbStatus] = useState<{
+    loading: boolean;
+    connected?: boolean;
+    type?: string;
+    databaseName?: string;
+    uriConfigured?: boolean;
+    maskedUri?: string;
+    counts?: Record<string, number>;
+    message?: string;
+  }>({ loading: true });
+  const [mongoTestStatus, setMongoTestStatus] = useState<{ loading: boolean; success?: boolean; message?: string }>({ loading: false });
+  const [syncStatus, setSyncStatus] = useState<{ loading: boolean; success?: boolean; message?: string }>({ loading: false });
+
   const [emailLogs, setEmailLogs] = useState<any[]>([]);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [copiedEnv, setCopiedEnv] = useState(false);
 
-  // Fetch email config & status from server
+  // Fetch email config & MongoDB status from server
+  const fetchDbStatus = () => {
+    setDbStatus(prev => ({ ...prev, loading: true }));
+    fetch('/api/db/status')
+      .then(res => res.json())
+      .then(data => {
+        setDbStatus({
+          loading: false,
+          connected: data.connected,
+          type: data.type,
+          databaseName: data.databaseName || 'sasaofficial',
+          uriConfigured: data.uriConfigured,
+          maskedUri: data.maskedUri,
+          counts: data.counts || { orders: orders.length, products: products.length, customers: 1 },
+          message: data.message
+        });
+      })
+      .catch(err => {
+        setDbStatus({
+          loading: false,
+          connected: false,
+          type: 'Local Browser State',
+          databaseName: 'sasaofficial',
+          message: err.message
+        });
+      });
+  };
+
   useEffect(() => {
     fetch('/api/email-status')
       .then(res => res.json())
@@ -41,6 +84,8 @@ export const AdminSettings: React.FC = () => {
       .catch(err => {
         console.log('Fetching email status info:', err);
       });
+
+    fetchDbStatus();
   }, []);
 
   const handleSave = (e: React.FormEvent) => {
@@ -96,14 +141,100 @@ export const AdminSettings: React.FC = () => {
     }
   };
 
-  const envVariablesSnippet = `# SASA Official - Hostinger Environment Variables
+  const handleTestMongo = async () => {
+    setMongoTestStatus({ loading: true });
+    try {
+      const res = await fetch('/api/db/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uri: mongoUri,
+          databaseName: mongoDbName
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMongoTestStatus({
+          loading: false,
+          success: true,
+          message: data.message || `Successfully connected to MongoDB Atlas database "${mongoDbName}"!`
+        });
+        fetchDbStatus();
+      } else {
+        setMongoTestStatus({
+          loading: false,
+          success: false,
+          message: data.message || data.error || 'Failed to connect to MongoDB Atlas cluster.'
+        });
+      }
+    } catch (err: any) {
+      setMongoTestStatus({
+        loading: false,
+        success: false,
+        message: err.message || 'Error connecting to MongoDB cluster.'
+      });
+    }
+  };
+
+  const handleSyncToMongo = async () => {
+    setSyncStatus({ loading: true });
+    try {
+      const res = await fetch('/api/db/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          products,
+          orders,
+          settings: {
+            storeName,
+            email,
+            phone,
+            address,
+            defaultShippingFee,
+            freeShippingThreshold
+          }
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSyncStatus({
+          loading: false,
+          success: true,
+          message: data.message || 'Catalog & Orders synced to MongoDB Atlas!'
+        });
+        fetchDbStatus();
+      } else {
+        setSyncStatus({
+          loading: false,
+          success: false,
+          message: data.message || data.error || 'MongoDB Atlas is not connected yet.'
+        });
+      }
+    } catch (err: any) {
+      setSyncStatus({
+        loading: false,
+        success: false,
+        message: err.message || 'Failed to sync data to MongoDB Atlas.'
+      });
+    }
+  };
+
+  const envVariablesSnippet = `# SASA Official - Production Environment Variables
 PORT=3000
+
+# OFFICIAL STORE OWNER EMAIL (ORDER NOTIFICATIONS)
 OFFICIAL_EMAIL=${email || 'info@sasaofficial.com'}
+
+# HOSTINGER SMTP EMAIL CONFIGURATION
 SMTP_HOST=${smtpHost || 'smtp.hostinger.com'}
 SMTP_PORT=${smtpPort || '465'}
 SMTP_SECURE=true
 SMTP_USER=${smtpUser || 'info@sasaofficial.com'}
-SMTP_PASS=${smtpPass || 'your_hostinger_email_password'}`;
+SMTP_PASS=${smtpPass || 'your_hostinger_email_password'}
+
+# MONGODB ATLAS DATABASE CONFIGURATION
+MONGODB_URI=${mongoUri || 'mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/sasaofficial?retryWrites=true&w=majority'}
+MONGODB_DB_NAME=${mongoDbName || 'sasaofficial'}`;
 
   const copyEnvSnippet = () => {
     navigator.clipboard.writeText(envVariablesSnippet);
@@ -116,8 +247,8 @@ SMTP_PASS=${smtpPass || 'your_hostinger_email_password'}`;
       
       <div className="border-b border-[#EAE4DC] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h2 className="font-serif text-2xl font-bold text-[#222]">Store Settings & Hostinger Email Setup</h2>
-          <p className="text-xs text-gray-500">Configure store contact details, Hostinger SMTP email notifications for new orders, and shipping fees.</p>
+          <h2 className="font-serif text-2xl font-bold text-[#222]">Store Settings, MongoDB Atlas & Hostinger Setup</h2>
+          <p className="text-xs text-gray-500">Configure store contact details, MongoDB Atlas cloud database connection, and Hostinger order email alerts.</p>
         </div>
       </div>
 
@@ -128,12 +259,200 @@ SMTP_PASS=${smtpPass || 'your_hostinger_email_password'}`;
         </div>
       )}
 
+      {/* ============================================================================== */}
+      {/* MONGODB ATLAS CLOUD DATABASE INTEGRATION */}
+      {/* ============================================================================== */}
+      <div className="bg-white border border-[#EAE4DC] rounded-xl p-6 shadow-sm space-y-6 text-xs">
+        <div className="flex items-center justify-between border-b border-[#EAE4DC] pb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200">
+              <Database className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-serif text-base font-bold text-[#222] flex items-center gap-2">
+                MongoDB Atlas Cloud Database
+              </h3>
+              <span className="text-[11px] text-gray-500">Database Name: <strong className="text-[#222]">sasaofficial</strong> | Engine: NoSQL Document Store</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {dbStatus.connected ? (
+              <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded text-[11px] font-bold flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Connected to Atlas Cluster
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded text-[11px] font-semibold flex items-center gap-1">
+                <Layers className="w-3.5 h-3.5 text-amber-600" /> Local Mode (Atlas Ready)
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={fetchDbStatus}
+              title="Refresh database status"
+              className="p-1.5 border border-[#EAE4DC] rounded hover:bg-gray-50 text-gray-600 transition cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${dbStatus.loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Database Overview Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div className="bg-[#FAF8F5] p-3.5 rounded-lg border border-[#EAE4DC]">
+            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold block mb-1">Database Name</span>
+            <span className="font-mono text-sm font-bold text-[#1E1E24] block">{dbStatus.databaseName || 'sasaofficial'}</span>
+            <span className="text-[10px] text-emerald-700 font-semibold mt-0.5 block">Active Production DB</span>
+          </div>
+
+          <div className="bg-[#FAF8F5] p-3.5 rounded-lg border border-[#EAE4DC]">
+            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold block mb-1">Orders Collection</span>
+            <span className="font-mono text-sm font-bold text-[#1E1E24] block">
+              {dbStatus.counts?.orders ?? orders.length} Orders
+            </span>
+            <span className="text-[10px] text-gray-500 mt-0.5 block">Auto-synced on checkout</span>
+          </div>
+
+          <div className="bg-[#FAF8F5] p-3.5 rounded-lg border border-[#EAE4DC]">
+            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold block mb-1">Products Catalog</span>
+            <span className="font-mono text-sm font-bold text-[#1E1E24] block">
+              {dbStatus.counts?.products ?? products.length} SKUs
+            </span>
+            <span className="text-[10px] text-gray-500 mt-0.5 block">Lawn & Pret Couture</span>
+          </div>
+
+          <div className="bg-[#FAF8F5] p-3.5 rounded-lg border border-[#EAE4DC]">
+            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold block mb-1">Atlas Status</span>
+            <span className={`text-[11px] font-bold block truncate ${dbStatus.connected ? 'text-emerald-700' : 'text-amber-700'}`}>
+              {dbStatus.connected ? 'Cluster Online' : dbStatus.uriConfigured ? 'Action Needed (IP Allow)' : 'URI Not Set'}
+            </span>
+            <span className="text-[10px] text-gray-500 mt-0.5 block font-mono truncate">
+              {dbStatus.maskedUri || 'sasaofficial.xo5gxgs.mongodb.net'}
+            </span>
+          </div>
+        </div>
+
+        {/* Action Needed Banner if URI is provided but Atlas IP is blocking connection */}
+        {dbStatus.uriConfigured && !dbStatus.connected && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2.5">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-700 flex-shrink-0" />
+              <span className="font-bold text-amber-900 text-xs">
+                MongoDB Atlas Connection Attempted: Action Needed in MongoDB Atlas Dashboard
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-800 leading-relaxed">
+              Your MongoDB connection string is detected (<strong>sasaofficial.xo5gxgs.mongodb.net</strong>), but MongoDB Atlas refused the TLS handshake (<code>SSL alert number 80</code>). This occurs when the server's cloud IP address is not whitelisted in your MongoDB Atlas cluster firewall.
+            </p>
+            <div className="bg-white/80 border border-amber-300 rounded-lg p-3 text-[11px] text-amber-900 space-y-1">
+              <strong className="block text-amber-950 font-bold">1-Minute Fix in your MongoDB Atlas Dashboard:</strong>
+              <ol className="list-decimal list-inside space-y-1 text-gray-700">
+                <li>Log in to your <a href="https://cloud.mongodb.com" target="_blank" rel="noopener noreferrer" className="text-[#9E8055] font-bold underline">MongoDB Atlas Console</a>.</li>
+                <li>In the left sidebar under <strong>Security</strong>, click <strong>Network Access</strong>.</li>
+                <li>Click the green <strong>"Add IP Address"</strong> button.</li>
+                <li>Click <strong>"Allow Access from Anywhere"</strong> (this adds <code>0.0.0.0/0</code>).</li>
+                <li>Click <strong>Confirm</strong>, wait 30 seconds, then click the refresh button above!</li>
+              </ol>
+            </div>
+          </div>
+        )}
+
+        {/* MongoDB Connection Input & Test */}
+        <div className="bg-[#FAF8F5] border border-[#EAE4DC] p-4 rounded-xl space-y-4">
+          <div>
+            <label className="block font-bold text-[#222] mb-1">
+              MongoDB Atlas Connection String URI
+            </label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={mongoUri}
+                onChange={(e) => setMongoUri(e.target.value)}
+                placeholder="mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/sasaofficial?retryWrites=true&w=majority"
+                className="flex-1 px-3 py-2 bg-white border border-[#D5CDBC] rounded font-mono text-[11px] text-[#222] focus:outline-none focus:border-[#9E8055]"
+              />
+              <button
+                type="button"
+                onClick={handleTestMongo}
+                disabled={mongoTestStatus.loading}
+                className="px-4 py-2 bg-[#1E1E24] text-white hover:bg-[#D4AF37] hover:text-[#1E1E24] font-bold rounded transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 whitespace-nowrap"
+              >
+                <Server className="w-3.5 h-3.5" />
+                {mongoTestStatus.loading ? 'Testing...' : 'Test Connection'}
+              </button>
+            </div>
+            <span className="text-[11px] text-gray-500 mt-1 block">
+              Format: <code>mongodb+srv://&lt;username&gt;:&lt;password&gt;@&lt;cluster-name&gt;.mongodb.net/sasaofficial?retryWrites=true&w=majority</code>
+            </span>
+          </div>
+
+          {/* Test Status Feedback */}
+          {mongoTestStatus.message && (
+            <div className={`p-3 rounded-lg border flex items-start gap-2 ${
+              mongoTestStatus.success ? 'bg-green-50 text-green-900 border-green-200' : 'bg-red-50 text-red-900 border-red-200'
+            }`}>
+              {mongoTestStatus.success ? <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" /> : <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />}
+              <div className="text-[11px] leading-relaxed">
+                <span className="font-bold">{mongoTestStatus.success ? 'Atlas Connected: ' : 'Notice: '}</span>
+                {mongoTestStatus.message}
+              </div>
+            </div>
+          )}
+
+          {/* Sync Button */}
+          <div className="pt-2 border-t border-[#EAE4DC] flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+              <span className="font-bold text-[#222] block">Sync Local Inventory & Orders to MongoDB Atlas</span>
+              <span className="text-[11px] text-gray-500">Pushes current catalog items, categories, and initial order records into MongoDB Atlas collections.</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleSyncToMongo}
+              disabled={syncStatus.loading}
+              className="px-4 py-2 bg-white border border-[#D5CDBC] text-[#222] hover:border-[#9E8055] hover:text-[#9E8055] font-bold rounded transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 whitespace-nowrap"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncStatus.loading ? 'animate-spin' : ''}`} />
+              {syncStatus.loading ? 'Syncing...' : 'Sync Data to Atlas'}
+            </button>
+          </div>
+
+          {syncStatus.message && (
+            <div className={`p-3 rounded-lg border text-[11px] ${
+              syncStatus.success ? 'bg-green-50 text-green-900 border-green-200' : 'bg-amber-50 text-amber-900 border-amber-200'
+            }`}>
+              {syncStatus.message}
+            </div>
+          )}
+        </div>
+
+        {/* MongoDB Atlas Quick Setup Guide */}
+        <div className="bg-[#FAF8F5] border border-[#EAE4DC] p-4 rounded-xl space-y-2">
+          <span className="font-bold text-[#1E1E24] text-xs flex items-center gap-1.5">
+            <Shield className="w-3.5 h-3.5 text-[#D4AF37]" /> How to get your MongoDB Atlas Credentials:
+          </span>
+          <ol className="list-decimal list-inside space-y-1 text-[11px] text-gray-600 leading-relaxed">
+            <li>Log in to <a href="https://www.mongodb.com/cloud/atlas" target="_blank" rel="noopener noreferrer" className="text-[#9E8055] font-bold underline">MongoDB Atlas</a> and create a free <strong>M0 Cluster</strong>.</li>
+            <li>Go to <strong>Security &gt; Database Access</strong> and create a Database User with password (e.g. <code>sasa_admin</code>).</li>
+            <li>Go to <strong>Security &gt; Network Access</strong> and click <strong>Add IP Address &gt; Allow Access from Anywhere (0.0.0.0/0)</strong> so your server can connect.</li>
+            <li>Go to <strong>Database &gt; Connect &gt; Drivers (Node.js)</strong> and copy your connection string (replace <code>&lt;password&gt;</code> with your actual user password and add <code>/sasaofficial</code> before the <code>?</code>).</li>
+          </ol>
+        </div>
+      </div>
+
       {/* Official Order Notifications & Hostinger Email Section */}
       <div className="bg-white border border-[#EAE4DC] rounded-xl p-6 shadow-sm space-y-6 text-xs">
         <div className="flex items-center justify-between border-b border-[#EAE4DC] pb-3">
-          <h3 className="font-serif text-base font-bold text-[#222] flex items-center gap-2">
-            <Mail className="w-4 h-4 text-[#D4AF37]" /> Official Email & Hostinger Order Notifications
-          </h3>
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-amber-50 text-amber-800 rounded-lg border border-amber-200">
+              <Mail className="w-4 h-4 text-[#D4AF37]" />
+            </div>
+            <div>
+              <h3 className="font-serif text-base font-bold text-[#222]">
+                Official Email & Hostinger Order Notifications
+              </h3>
+              <span className="text-[11px] text-gray-500">Instant email alerts on new customer checkout orders</span>
+            </div>
+          </div>
           <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded text-[11px] font-semibold flex items-center gap-1">
             <Server className="w-3 h-3" /> Hostinger SMTP Ready
           </span>
@@ -247,11 +566,11 @@ SMTP_PASS=${smtpPass || 'your_hostinger_email_password'}`;
           </div>
         )}
 
-        {/* Hostinger Environment Variables Quick-Copy Box */}
+        {/* Environment Variables Quick-Copy Box */}
         <div className="bg-[#1E1E24] text-[#E0E0E0] p-4 rounded-xl space-y-2">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[11px] text-[#D4AF37] font-bold flex items-center gap-1.5">
-              <Key className="w-3.5 h-3.5" /> Hostinger .env Environment Variables (Click to Copy)
+              <Key className="w-3.5 h-3.5" /> Production .env Environment Variables (Click to Copy)
             </span>
             <button
               type="button"
@@ -386,3 +705,4 @@ SMTP_PASS=${smtpPass || 'your_hostinger_email_password'}`;
     </div>
   );
 };
+

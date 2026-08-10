@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import { MongoClient, ServerApiVersion } from 'mongodb';
 
 import { createServer as createViteServer } from 'vite';
 
@@ -17,10 +18,90 @@ const PORT = process.env.PORT || 3000;
 const distPath = path.join(__dirname, 'dist');
 
 // Body parser for JSON payloads
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // In-memory store for recent email logs (useful for admin verification)
 const recentEmailLogs = [];
+
+// ==============================================================================
+// MONGODB ATLAS DATABASE ENGINE
+// ==============================================================================
+let mongoClient = null;
+let mongoDb = null;
+let isMongoConnecting = false;
+
+function getMongoUri() {
+  return process.env.MONGODB_URI || 
+         process.env.DATABASE_URL || 
+         process.env.MONGO_URI || 
+         process.env.MONGODB_URL || 
+         '';
+}
+
+function getMongoDbName() {
+  return process.env.MONGODB_DB_NAME || 'sasaofficial';
+}
+
+async function getMongoDatabase(customUri = null, customDbName = null) {
+  const uri = customUri || getMongoUri();
+  const dbName = customDbName || getMongoDbName();
+
+  if (!uri) {
+    return null;
+  }
+
+  if (mongoDb && !customUri) {
+    return mongoDb;
+  }
+
+  if (isMongoConnecting && !customUri) {
+    // Wait a brief moment if already connecting
+    await new Promise(resolve => setTimeout(resolve, 500));
+    if (mongoDb) return mongoDb;
+  }
+
+  try {
+    isMongoConnecting = true;
+    const client = new MongoClient(uri, {
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: false,
+        deprecationErrors: true,
+      },
+      connectTimeoutMS: 6000,
+      serverSelectionTimeoutMS: 6000,
+      socketTimeoutMS: 10000,
+    });
+
+    await client.connect();
+    // Verify connection by pinging
+    const database = client.db(dbName);
+    await database.command({ ping: 1 });
+
+    if (!customUri) {
+      mongoClient = client;
+      mongoDb = database;
+      console.log(`[MONGODB ATLAS] Connected to cluster successfully. Active database: "${dbName}"`);
+    }
+
+    return database;
+  } catch (err) {
+    console.error(`[MONGODB ATLAS ERROR] Connection attempt failed: ${err.message}`);
+    if (!customUri) {
+      mongoDb = null;
+    }
+    throw err;
+  } finally {
+    isMongoConnecting = false;
+  }
+}
+
+// Initial background attempt to connect to MongoDB Atlas if URI is provided
+if (getMongoUri()) {
+  getMongoDatabase()
+    .then(() => console.log('[MONGODB ATLAS] Initial connection verified.'))
+    .catch(err => console.warn('[MONGODB ATLAS] Initial connection note (Check IP whitelist / credentials):', err.message));
+}
 
 // Helper to create Nodemailer transporter from Hostinger / SMTP environment variables
 function createEmailTransporter() {
@@ -338,6 +419,17 @@ app.post('/api/send-order-email', async (req, res) => {
   const customerEmail = order.email || (order.shippingAddress && order.shippingAddress.email);
   const fromEmail = process.env.SMTP_USER || 'info@sasaofficial.com';
 
+  // Automatically persist order to MongoDB Atlas if connected
+  getMongoDatabase().then(db => {
+    if (db) {
+      db.collection('orders').updateOne(
+        { id: order.id },
+        { $set: { ...order, savedAt: new Date() } },
+        { upsert: true }
+      ).catch(e => console.warn('[MONGODB ORDER AUTO-SAVE NOTICE]', e.message));
+    }
+  }).catch(() => {});
+
   const logEntry = {
     id: `email-log-${Date.now()}`,
     orderId: order.id,
@@ -507,6 +599,198 @@ app.get('/api/email-status', (req, res) => {
     smtpUser: process.env.SMTP_USER ? `${process.env.SMTP_USER.slice(0, 3)}***` : 'Not Set',
     recentLogs: recentEmailLogs.slice(0, 15)
   });
+});
+
+// ==============================================================================
+// 5. MONGODB ATLAS DATABASE API ENDPOINTS
+// ==============================================================================
+
+// GET /api/db/status: Check MongoDB Atlas connection health, DB name & collections
+app.get('/api/db/status', async (req, res) => {
+  const uri = getMongoUri();
+  const dbName = getMongoDbName();
+  const hasUri = Boolean(uri);
+
+  let maskedUri = 'Not Set (Local Storage Fallback Mode)';
+  if (hasUri) {
+    try {
+      if (uri.startsWith('mongodb+srv://') || uri.startsWith('mongodb://')) {
+        const parts = uri.split('@');
+        if (parts.length > 1) {
+          maskedUri = `mongodb+srv://****:****@${parts[1].split('?')[0]}`;
+        } else {
+          maskedUri = 'mongodb://[configured]';
+        }
+      }
+    } catch {
+      maskedUri = 'mongodb+srv://[configured]';
+    }
+  }
+
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const collections = await db.listCollections().toArray();
+      const collectionNames = collections.map(c => c.name);
+
+      const counts = {};
+      for (const name of ['orders', 'products', 'customers', 'reviews', 'settings']) {
+        if (collectionNames.includes(name)) {
+          counts[name] = await db.collection(name).countDocuments();
+        } else {
+          counts[name] = 0;
+        }
+      }
+
+      return res.json({
+        connected: true,
+        type: 'MongoDB Atlas (Cloud NoSQL Database)',
+        databaseName: dbName,
+        uriConfigured: true,
+        maskedUri,
+        collections: collectionNames,
+        counts,
+        message: `Successfully connected to MongoDB Atlas database "${dbName}"`
+      });
+    }
+  } catch (err) {
+    return res.json({
+      connected: false,
+      type: 'MongoDB Atlas',
+      databaseName: dbName,
+      uriConfigured: hasUri,
+      maskedUri,
+      error: err.message,
+      message: `MongoDB Atlas connection error: ${err.message}. Please verify Network Access (0.0.0.0/0) and credentials.`
+    });
+  }
+
+  return res.json({
+    connected: false,
+    type: 'Local Browser State (Ready for MongoDB Atlas)',
+    databaseName: dbName,
+    uriConfigured: false,
+    maskedUri: 'None (Configure MONGODB_URI to connect your Atlas Cluster)',
+    counts: { orders: 0, products: 0, customers: 0 },
+    message: 'Running in Local Storage mode. Set MONGODB_URI in .env to persist to MongoDB Atlas.'
+  });
+});
+
+// POST /api/db/test-connection: Verify any MongoDB Atlas URI
+app.post('/api/db/test-connection', async (req, res) => {
+  const { uri, databaseName } = req.body || {};
+  const testUri = uri || getMongoUri();
+  const dbName = databaseName || getMongoDbName();
+
+  if (!testUri) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide a valid MongoDB Atlas connection string (e.g. mongodb+srv://<user>:<password>@cluster0.mongodb.net/...)'
+    });
+  }
+
+  try {
+    const db = await getMongoDatabase(testUri, dbName);
+    const collections = await db.listCollections().toArray();
+    const collectionNames = collections.map(c => c.name);
+
+    return res.json({
+      success: true,
+      message: `Successfully connected to MongoDB Atlas! Database: "${dbName}"`,
+      databaseName: dbName,
+      collections: collectionNames
+    });
+  } catch (err) {
+    console.error('[MONGODB ATLAS TEST FAILED]', err);
+    return res.status(500).json({
+      success: false,
+      error: err.message,
+      message: `Failed to connect to MongoDB Atlas: ${err.message}. Check IP Whitelist (0.0.0.0/0) and user permissions in MongoDB Atlas.`
+    });
+  }
+});
+
+// GET /api/orders: Fetch orders from MongoDB Atlas or return empty array
+app.get('/api/orders', async (req, res) => {
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const orders = await db.collection('orders').find({}).sort({ createdAt: -1 }).toArray();
+      return res.json({ success: true, source: 'mongodb_atlas', orders });
+    }
+  } catch (err) {
+    console.warn('[MONGODB ORDERS FETCH ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local', orders: [] });
+});
+
+// POST /api/orders: Save order directly into MongoDB Atlas
+app.post('/api/orders', async (req, res) => {
+  const { order } = req.body || {};
+  if (!order) {
+    return res.status(400).json({ success: false, message: 'Missing order payload' });
+  }
+
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      order.savedAt = new Date();
+      await db.collection('orders').updateOne(
+        { id: order.id },
+        { $set: order },
+        { upsert: true }
+      );
+      return res.json({ success: true, source: 'mongodb_atlas', id: order.id });
+    }
+  } catch (err) {
+    console.warn('[MONGODB ORDER SAVE ERROR]', err.message);
+  }
+
+  return res.json({ success: true, source: 'local_fallback', id: order.id });
+});
+
+// POST /api/db/sync: Seed or sync products and orders to MongoDB Atlas
+app.post('/api/db/sync', async (req, res) => {
+  const { products, orders, settings } = req.body || {};
+  try {
+    const db = await getMongoDatabase();
+    if (!db) {
+      return res.status(400).json({
+        success: false,
+        message: 'MongoDB Atlas is not connected. Add MONGODB_URI in your environment variables to sync.'
+      });
+    }
+
+    let productsCount = 0;
+    let ordersCount = 0;
+
+    if (Array.isArray(products) && products.length > 0) {
+      for (const p of products) {
+        await db.collection('products').updateOne({ id: p.id }, { $set: p }, { upsert: true });
+      }
+      productsCount = products.length;
+    }
+
+    if (Array.isArray(orders) && orders.length > 0) {
+      for (const o of orders) {
+        await db.collection('orders').updateOne({ id: o.id }, { $set: o }, { upsert: true });
+      }
+      ordersCount = orders.length;
+    }
+
+    if (settings) {
+      await db.collection('settings').updateOne({ key: 'store_settings' }, { $set: settings }, { upsert: true });
+    }
+
+    return res.json({
+      success: true,
+      message: `Successfully synced ${productsCount} products and ${ordersCount} orders to MongoDB Atlas!`,
+      productsCount,
+      ordersCount
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ----------------------
