@@ -85,14 +85,35 @@ export const Header: React.FC = () => {
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-7">
             {activeMenuItems.map((item) => {
+              const isItemBold = !!item.isBold;
+              const customColor = item.color;
+              const hasCustomColor = !!customColor && customColor.trim() !== '';
+
               return (
                 <button
                   key={item.id}
                   onClick={() => handleMenuItemClick(item)}
-                  className="relative text-xs font-medium uppercase tracking-[0.12em] text-[#444444] hover:text-[#9E8055] transition-colors py-1 group"
+                  style={hasCustomColor ? { color: customColor } : undefined}
+                  className={`relative text-xs uppercase tracking-[0.12em] transition-all py-1 group inline-flex items-center gap-1.5 ${
+                    isItemBold ? 'font-bold' : 'font-medium'
+                  } ${!hasCustomColor ? 'text-[#444444] hover:text-[#9E8055]' : 'hover:opacity-80'}`}
                 >
-                  {item.label}
-                  <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-[#9E8055] transition-all duration-300 group-hover:w-full" />
+                  <span>{item.label}</span>
+                  {item.badgeText && (
+                    <span
+                      className="px-1.5 py-0.5 text-[8.5px] font-extrabold rounded tracking-wider leading-none shadow-2xs"
+                      style={{
+                        backgroundColor: item.badgeColor || (hasCustomColor ? customColor : '#E53E3E'),
+                        color: '#FFFFFF'
+                      }}
+                    >
+                      {item.badgeText}
+                    </span>
+                  )}
+                  <span
+                    className="absolute bottom-0 left-0 w-0 h-[1.5px] transition-all duration-300 group-hover:w-full"
+                    style={{ backgroundColor: hasCustomColor ? customColor : '#9E8055' }}
+                  />
                 </button>
               );
             })}
@@ -159,15 +180,37 @@ export const Header: React.FC = () => {
       {mobileMenuOpen && (
         <div className="lg:hidden bg-white border-b border-[#EAE4DC] px-6 py-6 space-y-4 shadow-lg">
           <div className="flex flex-col space-y-2">
-            {activeMenuItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleMenuItemClick(item)}
-                className="text-left text-sm font-medium uppercase tracking-wider py-2.5 text-[#222222] border-b border-[#F2F2F2] flex items-center justify-between hover:text-[#9E8055] transition"
-              >
-                <span>{item.label}</span>
-              </button>
-            ))}
+            {activeMenuItems.map((item) => {
+              const isItemBold = !!item.isBold;
+              const customColor = item.color;
+              const hasCustomColor = !!customColor && customColor.trim() !== '';
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleMenuItemClick(item)}
+                  style={hasCustomColor ? { color: customColor } : undefined}
+                  className={`text-left text-sm uppercase tracking-wider py-2.5 border-b border-[#F2F2F2] flex items-center justify-between transition ${
+                    isItemBold ? 'font-bold' : 'font-medium'
+                  } ${!hasCustomColor ? 'text-[#222222] hover:text-[#9E8055]' : 'hover:opacity-80'}`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>{item.label}</span>
+                    {item.badgeText && (
+                      <span
+                        className="px-1.5 py-0.5 text-[9px] font-extrabold rounded tracking-wider leading-none"
+                        style={{
+                          backgroundColor: item.badgeColor || (hasCustomColor ? customColor : '#E53E3E'),
+                          color: '#FFFFFF'
+                        }}
+                      >
+                        {item.badgeText}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

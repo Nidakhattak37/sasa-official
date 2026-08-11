@@ -214,6 +214,10 @@ export interface MenuItem {
   targetType: 'view' | 'category' | 'page' | 'custom';
   targetValue: string;
   isNewTab?: boolean;
+  isBold?: boolean;
+  color?: string;
+  badgeText?: string;
+  badgeColor?: string;
 }
 
 export type Currency = 'PKR' | 'USD' | 'AED' | 'GBP';
