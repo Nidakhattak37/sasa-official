@@ -29,6 +29,9 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
   };
 
   const handleFullDetails = () => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
     setSelectedProductId(product.id);
     setCurrentView('product-detail');
     onClose();

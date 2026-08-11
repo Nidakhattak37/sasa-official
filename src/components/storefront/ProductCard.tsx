@@ -28,12 +28,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }
     : null;
 
   const handleCardClick = () => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
     setSelectedProductId(product.id);
     setCurrentView('product-detail');
   };
 
   const handleQuickView = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
     setSelectedProductId(product.id);
     setCurrentView('product-detail');
   };
@@ -135,7 +141,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }
 
           {/* 2. Collection Type / Season & Piece Type */}
           <div className="flex items-center justify-between text-xs font-semibold text-[#8B5E34] mt-1">
-            <span>{product.collectionType || product.collection || 'Summer Lawn'}</span>
+            <span>{product.collectionType || product.collection || product.category || ''}</span>
             {product.pieceType && (
               <span className="px-1.5 py-0.5 bg-[#F5F1EC] text-[#222222] text-[10px] font-semibold rounded border border-[#EAE4DC]">
                 {product.pieceType}

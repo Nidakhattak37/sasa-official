@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { AnnouncementBar } from '../../components/storefront/AnnouncementBar';
 import { Header } from '../../components/storefront/Header';
@@ -36,6 +36,20 @@ export const ProductDetailView: React.FC = () => {
   const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
   const [modalZoom, setModalZoom] = useState(1.5);
   const [modalPan, setModalPan] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
+
+  // Scroll to top immediately when product loads
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+    setSelectedImageIdx(0);
+    if (product) {
+      setSelectedSize(product.sizes[0] || 'M');
+      setSelectedColor(product.colors[0]?.name || 'Standard');
+    }
+  }, [selectedProductId, product?.id]);
 
   // Review form state
   const [reviewName, setReviewName] = useState('');
@@ -606,7 +620,8 @@ export const ProductDetailView: React.FC = () => {
             className="flex items-center justify-between z-30 pb-3 border-b border-white/10"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-white">
+            {/* Product details: Hidden on mobile view zoom per design, visible on desktop (sm:block) */}
+            <div className="hidden sm:block text-white">
               <h3 className="text-sm sm:text-base font-serif font-bold truncate max-w-xs sm:max-w-md text-[#EAE4DC]">
                 {product.name}
               </h3>
@@ -615,52 +630,55 @@ export const ProductDetailView: React.FC = () => {
               </p>
             </div>
 
-            {/* Zoom Controls Pill */}
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full">
+            {/* Zoom Controls & Close Button */}
+            <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2">
+              {/* Zoom Controls Pill */}
+              <div className="flex items-center gap-1.5 sm:gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-2.5 sm:px-3 py-1.5 rounded-full">
+                <button
+                  onClick={() => setModalZoom(prev => Math.max(1, +(prev - 0.5).toFixed(1)))}
+                  disabled={modalZoom <= 1}
+                  className="p-1 sm:p-1.5 text-white hover:text-[#D4AF37] disabled:opacity-30 disabled:hover:text-white transition cursor-pointer"
+                  title="Zoom Out"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+
+                <span className="text-xs font-mono font-bold text-white px-1 sm:px-2">
+                  {Math.round(modalZoom * 100)}%
+                </span>
+
+                <button
+                  onClick={() => setModalZoom(prev => Math.min(3.5, +(prev + 0.5).toFixed(1)))}
+                  disabled={modalZoom >= 3.5}
+                  className="p-1 sm:p-1.5 text-white hover:text-[#D4AF37] disabled:opacity-30 disabled:hover:text-white transition cursor-pointer"
+                  title="Zoom In"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+
+                <div className="h-4 w-px bg-white/20 mx-0.5 sm:mx-1" />
+
+                <button
+                  onClick={() => {
+                    setModalZoom(1);
+                    setModalPan({ x: 50, y: 50 });
+                  }}
+                  className="p-1 sm:p-1.5 text-white hover:text-[#D4AF37] transition cursor-pointer"
+                  title="Reset Zoom (100%)"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Close Button */}
               <button
-                onClick={() => setModalZoom(prev => Math.max(1, +(prev - 0.5).toFixed(1)))}
-                disabled={modalZoom <= 1}
-                className="p-1.5 text-white hover:text-[#D4AF37] disabled:opacity-30 disabled:hover:text-white transition"
-                title="Zoom Out"
+                onClick={() => setIsZoomOpen(false)}
+                className="text-white p-2 sm:p-2.5 bg-white/10 hover:bg-white/30 rounded-full transition hover:scale-105 cursor-pointer ml-auto sm:ml-0"
+                aria-label="Close fullscreen zoom"
               >
-                <ZoomOut className="w-4 h-4" />
-              </button>
-
-              <span className="text-xs font-mono font-bold text-white px-2">
-                {Math.round(modalZoom * 100)}%
-              </span>
-
-              <button
-                onClick={() => setModalZoom(prev => Math.min(3.5, +(prev + 0.5).toFixed(1)))}
-                disabled={modalZoom >= 3.5}
-                className="p-1.5 text-white hover:text-[#D4AF37] disabled:opacity-30 disabled:hover:text-white transition"
-                title="Zoom In"
-              >
-                <ZoomIn className="w-4 h-4" />
-              </button>
-
-              <div className="h-4 w-px bg-white/20 mx-1" />
-
-              <button
-                onClick={() => {
-                  setModalZoom(1);
-                  setModalPan({ x: 50, y: 50 });
-                }}
-                className="p-1.5 text-white hover:text-[#D4AF37] transition"
-                title="Reset Zoom (100%)"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
-
-            {/* Close Button */}
-            <button
-              onClick={() => setIsZoomOpen(false)}
-              className="text-white p-2 sm:p-2.5 bg-white/10 hover:bg-white/30 rounded-full transition hover:scale-105"
-              aria-label="Close fullscreen zoom"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
 
           {/* Center Image Stage with Interactive Panning & Navigation */}

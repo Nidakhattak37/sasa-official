@@ -29,6 +29,9 @@ export const SearchOverlay: React.FC = () => {
   const popularTags = ['Velvet', 'Pret', 'Lawn', 'Chiffon', 'Unstitched', 'Sale', 'Silk', 'Organza'];
 
   const handleSelectProduct = (productId: string) => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
     setSelectedProductId(productId);
     setCurrentView('product-detail');
     setIsSearchOpen(false);

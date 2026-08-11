@@ -969,11 +969,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateInstantClassics = (data: InstantClassicsSection) => setInstantClassics(data);
   const updateDualEditorial = (data: DualEditorialSection) => setDualEditorial(data);
 
+  // Automatic universal scroll-to-top handler for all views, categories, and products
+  const handleSetCurrentView = (view: string) => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+    setCurrentView(view);
+  };
+
+  const handleSetSelectedProductId = (id: string | null) => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+    setSelectedProductId(id);
+  };
+
+  const handleSetSelectedCategorySlug = (slug: string | null) => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+    setSelectedCategorySlug(slug);
+  };
+
   return (
     <AppContext.Provider value={{
-      currentView, setCurrentView,
-      selectedProductId, setSelectedProductId,
-      selectedCategorySlug, setSelectedCategorySlug,
+      currentView, setCurrentView: handleSetCurrentView,
+      selectedProductId, setSelectedProductId: handleSetSelectedProductId,
+      selectedCategorySlug, setSelectedCategorySlug: handleSetSelectedCategorySlug,
       isSearchOpen, setIsSearchOpen,
       isCartDrawerOpen, setIsCartDrawerOpen,
       currency, setCurrency,

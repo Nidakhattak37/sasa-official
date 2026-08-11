@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { AnnouncementBar } from '../../components/storefront/AnnouncementBar';
 import { Header } from '../../components/storefront/Header';
@@ -9,7 +9,11 @@ import { SizeGuideModal } from '../../components/storefront/SizeGuideModal';
 import { CartDrawer } from '../../components/storefront/CartDrawer';
 import { SearchOverlay } from '../../components/storefront/SearchOverlay';
 import { Product } from '../../types';
-import { SlidersHorizontal, ChevronDown, RefreshCw, Sparkles } from 'lucide-react';
+import { 
+  SlidersHorizontal, ChevronDown, RefreshCw, Sparkles, 
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  LayoutGrid, Grid2X2, RectangleVertical, Columns4
+} from 'lucide-react';
 
 export const ShopView: React.FC = () => {
   const { products, categories, selectedCategorySlug, setSelectedCategorySlug, setCurrentView } = useApp();
@@ -24,12 +28,34 @@ export const ShopView: React.FC = () => {
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
+  // View Layout State (1 Image, 2 Images, 4 Images per row)
+  const [gridColumns, setGridColumns] = useState<1 | 2 | 3 | 4>(4);
+
+  // Pagination & Items Per Page State (12, 24, 36, 48, All)
+  const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(12);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  const productGridTopRef = useRef<HTMLDivElement>(null);
+
   const collectionTypes = ['Summer Lawn', 'Winter Velvet & Khaddar', 'Spring Floral Edit', 'Autumn Silk & Karandi', 'Festive / Eid Special'];
   const pieceTypes = ['3 Piece', '2 Piece', '1 Piece', 'Shirt Dupatta', 'Shirt Shalwar'];
   const fabrics = ['Lawn', 'Velvet', 'Silk', 'Chiffon', 'Organza', 'Cotton Net', 'Jacquard'];
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'Unstitched'];
 
   const selectedCategoryObj = categories.find(c => c.slug === selectedCategorySlug);
+
+  // Universal scroll to top on any option/view change
+  const scrollToTop = () => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Scroll to top on mount and whenever category changes
+  useEffect(() => {
+    scrollToTop();
+    setCurrentPage(1);
+  }, [selectedCategorySlug]);
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
@@ -91,7 +117,27 @@ export const ShopView: React.FC = () => {
     });
   }, [products, selectedCategorySlug, selectedCollectionType, selectedPieceType, selectedFabric, selectedSize, maxPrice, sortBy]);
 
+  // Total pages and Paginated Products slice
+  const totalPages = useMemo(() => {
+    if (itemsPerPage === 'all' || filteredProducts.length === 0) return 1;
+    return Math.ceil(filteredProducts.length / (itemsPerPage as number));
+  }, [filteredProducts.length, itemsPerPage]);
+
+  // Keep currentPage valid if filters reduce page count
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
+  const paginatedProducts = useMemo(() => {
+    if (itemsPerPage === 'all') return filteredProducts;
+    const startIndex = (currentPage - 1) * (itemsPerPage as number);
+    return filteredProducts.slice(startIndex, startIndex + (itemsPerPage as number));
+  }, [filteredProducts, currentPage, itemsPerPage]);
+
   const resetFilters = () => {
+    scrollToTop();
     setSelectedCategorySlug(null);
     setSelectedCollectionType('all');
     setSelectedPieceType('all');
@@ -99,7 +145,58 @@ export const ShopView: React.FC = () => {
     setSelectedSize('all');
     setMaxPrice(40000);
     setSortBy('featured');
+    setCurrentPage(1);
   };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    scrollToTop();
+  };
+
+  const handleItemsPerPageChange = (val: number | 'all') => {
+    setItemsPerPage(val);
+    setCurrentPage(1);
+    scrollToTop();
+  };
+
+  const handleLayoutChange = (cols: 1 | 2 | 3 | 4) => {
+    setGridColumns(cols);
+  };
+
+  // Generate numbered page array (e.g. 1, 2, 3, ...)
+  const pageNumbers = useMemo(() => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', totalPages);
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+      }
+    }
+    return pages;
+  }, [totalPages, currentPage]);
+
+  // Determine grid container class based on selected layout
+  const getGridClass = () => {
+    switch (gridColumns) {
+      case 1:
+        return 'grid grid-cols-1 gap-8 max-w-xl mx-auto';
+      case 2:
+        return 'grid grid-cols-1 sm:grid-cols-2 gap-6';
+      case 3:
+        return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6';
+      case 4:
+      default:
+        return 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6';
+    }
+  };
+
+  const startItemIndex = filteredProducts.length === 0 ? 0 : itemsPerPage === 'all' ? 1 : (currentPage - 1) * (itemsPerPage as number) + 1;
+  const endItemIndex = itemsPerPage === 'all' ? filteredProducts.length : Math.min(currentPage * (itemsPerPage as number), filteredProducts.length);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -110,9 +207,17 @@ export const ShopView: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           {/* Breadcrumb & Header Banner */}
-          <div className="mb-8">
+          <div className="mb-8" ref={productGridTopRef}>
             <div className="flex items-center space-x-2 text-xs text-[#777777] mb-2">
-              <button onClick={() => setCurrentView('home')} className="hover:text-[#222]">Home</button>
+              <button 
+                onClick={() => {
+                  scrollToTop();
+                  setCurrentView('home');
+                }} 
+                className="hover:text-[#222] transition"
+              >
+                Home
+              </button>
               <span>/</span>
               <span className="text-[#222] font-semibold">
                 {selectedCategoryObj ? selectedCategoryObj.name : 'All Products'}
@@ -132,37 +237,113 @@ export const ShopView: React.FC = () => {
             </div>
           </div>
 
-          {/* Top Bar: Filter Toggles & Sort */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 mb-8 border-b border-[#EAE4DC]">
+          {/* Top Controls Toolbar: Filters, Layout Switcher, Items Per Page, and Sort */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 pb-6 mb-8 border-b border-[#EAE4DC]">
             
-            <div className="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-start">
+            {/* Left: Mobile Filters Button & Summary */}
+            <div className="flex items-center space-x-4 justify-between lg:justify-start">
               <button
                 onClick={() => setShowMobileFilters(!showMobileFilters)}
-                className="lg:hidden px-4 py-2 bg-white border border-[#EAE4DC] rounded text-xs font-semibold text-[#222] flex items-center gap-2"
+                className="lg:hidden px-4 py-2 bg-white border border-[#EAE4DC] rounded-lg text-xs font-semibold text-[#222] flex items-center gap-2 hover:bg-[#FAF8F5] transition"
               >
                 <SlidersHorizontal className="w-4 h-4 text-[#9E8055]" />
                 <span>Filters</span>
               </button>
 
               <span className="text-xs text-[#777777] font-medium">
-                Showing <strong className="text-[#222]">{filteredProducts.length}</strong> Products
+                Showing <strong className="text-[#222]">{startItemIndex}-{endItemIndex}</strong> of <strong className="text-[#222]">{filteredProducts.length}</strong> Products
               </span>
             </div>
 
-            {/* Sort Dropdown */}
-            <div className="flex items-center space-x-2 w-full sm:w-auto justify-end text-xs">
-              <span className="text-[#777777] font-medium">Sort By:</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-white border border-[#EAE4DC] text-[#222222] font-semibold rounded px-3 py-1.5 focus:outline-none focus:border-[#9E8055] cursor-pointer"
-              >
-                <option value="featured">Featured & Best Sellers</option>
-                <option value="newest">Newest Arrivals</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="rating">Highest Rated</option>
-              </select>
+            {/* Right: Layout Switcher, Items Per Page, and Sort By */}
+            <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 sm:gap-5 text-xs">
+              
+              {/* 1. VIEW LAYOUT SWITCHER (1 Image, 2 Images, 4 Images) */}
+              <div className="flex items-center gap-1.5 bg-[#FAF8F5] p-1 rounded-lg border border-[#EAE4DC]">
+                <span className="text-[11px] font-semibold text-[#777] px-1.5 hidden sm:inline">View:</span>
+                
+                {/* 1 Image / Column */}
+                <button
+                  onClick={() => handleLayoutChange(1)}
+                  className={`p-1.5 sm:px-2 sm:py-1 rounded flex items-center gap-1 font-semibold text-[11px] transition cursor-pointer ${
+                    gridColumns === 1
+                      ? 'bg-[#1E1E24] text-white shadow-xs'
+                      : 'text-[#666] hover:bg-white hover:text-[#1E1E24]'
+                  }`}
+                  title="View 1 image per row (Full view)"
+                >
+                  <RectangleVertical className="w-4 h-4" />
+                  <span className="hidden sm:inline">1</span>
+                </button>
+
+                {/* 2 Images / Columns */}
+                <button
+                  onClick={() => handleLayoutChange(2)}
+                  className={`p-1.5 sm:px-2 sm:py-1 rounded flex items-center gap-1 font-semibold text-[11px] transition cursor-pointer ${
+                    gridColumns === 2
+                      ? 'bg-[#1E1E24] text-white shadow-xs'
+                      : 'text-[#666] hover:bg-white hover:text-[#1E1E24]'
+                  }`}
+                  title="View 2 images per row"
+                >
+                  <Grid2X2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">2</span>
+                </button>
+
+                {/* 4 Images / Columns */}
+                <button
+                  onClick={() => handleLayoutChange(4)}
+                  className={`p-1.5 sm:px-2 sm:py-1 rounded flex items-center gap-1 font-semibold text-[11px] transition cursor-pointer ${
+                    gridColumns === 4
+                      ? 'bg-[#1E1E24] text-white shadow-xs'
+                      : 'text-[#666] hover:bg-white hover:text-[#1E1E24]'
+                  }`}
+                  title="View 4 images per row (Compact catalogue)"
+                >
+                  <Columns4 className="w-4 h-4" />
+                  <span className="hidden sm:inline">4</span>
+                </button>
+              </div>
+
+              {/* 2. ITEMS PER PAGE (12, 24, 36, 48, All) */}
+              <div className="flex items-center space-x-1.5">
+                <span className="text-[#777777] font-medium hidden sm:inline">Show:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    const val = e.target.value === 'all' ? 'all' : Number(e.target.value);
+                    handleItemsPerPageChange(val as any);
+                  }}
+                  className="bg-white border border-[#EAE4DC] text-[#222222] font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#9E8055] cursor-pointer shadow-2xs"
+                  aria-label="Select items per page"
+                >
+                  <option value={12}>12 / page</option>
+                  <option value={24}>24 / page</option>
+                  <option value={36}>36 / page</option>
+                  <option value={48}>48 / page</option>
+                  <option value="all">View All</option>
+                </select>
+              </div>
+
+              {/* 3. SORT DROPDOWN */}
+              <div className="flex items-center space-x-1.5">
+                <span className="text-[#777777] font-medium hidden sm:inline">Sort:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value as any);
+                    scrollToTop();
+                  }}
+                  className="bg-white border border-[#EAE4DC] text-[#222222] font-semibold rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#9E8055] cursor-pointer shadow-2xs"
+                >
+                  <option value="featured">Featured & Best Sellers</option>
+                  <option value="newest">Newest Arrivals</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="rating">Highest Rated</option>
+                </select>
+              </div>
+
             </div>
 
           </div>
@@ -171,7 +352,7 @@ export const ShopView: React.FC = () => {
           <div className="flex flex-col lg:flex-row gap-8">
             
             {/* Left Sidebar Filters (Desktop & Mobile drawer) */}
-            <aside className={`w-full lg:w-64 space-y-6 ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
+            <aside className={`w-full lg:w-64 space-y-6 shrink-0 ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
               
               <div className="flex items-center justify-between pb-3 border-b border-[#EAE4DC]">
                 <h3 className="font-serif text-base font-bold text-[#222222] flex items-center gap-2">
@@ -179,7 +360,7 @@ export const ShopView: React.FC = () => {
                 </h3>
                 <button
                   onClick={resetFilters}
-                  className="text-[11px] text-[#9E8055] hover:underline flex items-center gap-1 font-semibold"
+                  className="text-[11px] text-[#9E8055] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
                 >
                   <RefreshCw className="w-3 h-3" /> Reset
                 </button>
@@ -190,9 +371,12 @@ export const ShopView: React.FC = () => {
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-[#222]">Categories</h4>
                 <div className="space-y-1">
                   <button
-                    onClick={() => setSelectedCategorySlug(null)}
-                    className={`w-full text-left text-xs py-1.5 px-2 rounded transition ${
-                      selectedCategorySlug === null ? 'bg-[#222222] text-white font-semibold' : 'text-[#555] hover:bg-[#F5F1EC]'
+                    onClick={() => {
+                      setSelectedCategorySlug(null);
+                      scrollToTop();
+                    }}
+                    className={`w-full text-left text-xs py-1.5 px-2 rounded-lg transition cursor-pointer ${
+                      selectedCategorySlug === null ? 'bg-[#222222] text-white font-semibold shadow-xs' : 'text-[#555] hover:bg-[#F5F1EC]'
                     }`}
                   >
                     All Categories ({products.length})
@@ -200,9 +384,12 @@ export const ShopView: React.FC = () => {
                   {categories.map(cat => (
                     <button
                       key={cat.id}
-                      onClick={() => setSelectedCategorySlug(cat.slug)}
-                      className={`w-full text-left text-xs py-1.5 px-2 rounded transition flex justify-between items-center ${
-                        selectedCategorySlug === cat.slug ? 'bg-[#222222] text-white font-semibold' : 'text-[#555] hover:bg-[#F5F1EC]'
+                      onClick={() => {
+                        setSelectedCategorySlug(cat.slug);
+                        scrollToTop();
+                      }}
+                      className={`w-full text-left text-xs py-1.5 px-2 rounded-lg transition flex justify-between items-center cursor-pointer ${
+                        selectedCategorySlug === cat.slug ? 'bg-[#222222] text-white font-semibold shadow-xs' : 'text-[#555] hover:bg-[#F5F1EC]'
                       }`}
                     >
                       <span>{cat.name}</span>
@@ -216,8 +403,11 @@ export const ShopView: React.FC = () => {
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-[#222]">Suit Composition (Pieces)</h4>
                 <div className="flex flex-wrap gap-1.5">
                   <button
-                    onClick={() => setSelectedPieceType('all')}
-                    className={`px-2.5 py-1 text-[11px] font-medium rounded border transition ${
+                    onClick={() => {
+                      setSelectedPieceType('all');
+                      scrollToTop();
+                    }}
+                    className={`px-2.5 py-1 text-[11px] font-medium rounded-lg border transition cursor-pointer ${
                       selectedPieceType === 'all' ? 'bg-[#222222] text-white border-[#222222]' : 'bg-white text-[#555] border-[#EAE4DC] hover:bg-[#F5F1EC]'
                     }`}
                   >
@@ -226,8 +416,11 @@ export const ShopView: React.FC = () => {
                   {pieceTypes.map(piece => (
                     <button
                       key={piece}
-                      onClick={() => setSelectedPieceType(piece)}
-                      className={`px-2.5 py-1 text-[11px] font-semibold rounded border transition ${
+                      onClick={() => {
+                        setSelectedPieceType(piece);
+                        scrollToTop();
+                      }}
+                      className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition cursor-pointer ${
                         selectedPieceType === piece ? 'bg-[#8B5E34] text-white border-[#8B5E34] shadow-sm' : 'bg-white text-[#444] border-[#EAE4DC] hover:border-[#8B5E34]'
                       }`}
                     >
@@ -242,8 +435,11 @@ export const ShopView: React.FC = () => {
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-[#222]">Collection Type (Season)</h4>
                 <div className="flex flex-wrap gap-1.5">
                   <button
-                    onClick={() => setSelectedCollectionType('all')}
-                    className={`px-2.5 py-1 text-[11px] rounded border transition ${
+                    onClick={() => {
+                      setSelectedCollectionType('all');
+                      scrollToTop();
+                    }}
+                    className={`px-2.5 py-1 text-[11px] rounded-lg border transition cursor-pointer ${
                       selectedCollectionType === 'all' ? 'bg-[#1E1E24] text-white border-[#1E1E24]' : 'bg-white text-[#555] border-[#EAE4DC] hover:bg-[#F5F1EC]'
                     }`}
                   >
@@ -252,8 +448,11 @@ export const ShopView: React.FC = () => {
                   {collectionTypes.map(type => (
                     <button
                       key={type}
-                      onClick={() => setSelectedCollectionType(type)}
-                      className={`px-2.5 py-1 text-[11px] rounded border transition ${
+                      onClick={() => {
+                        setSelectedCollectionType(type);
+                        scrollToTop();
+                      }}
+                      className={`px-2.5 py-1 text-[11px] rounded-lg border transition cursor-pointer ${
                         selectedCollectionType === type ? 'bg-[#8B5E34] text-white border-[#8B5E34]' : 'bg-white text-[#555] border-[#EAE4DC] hover:bg-[#F5F1EC]'
                       }`}
                     >
@@ -268,8 +467,11 @@ export const ShopView: React.FC = () => {
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-[#222]">Fabric Type</h4>
                 <div className="flex flex-wrap gap-1.5">
                   <button
-                    onClick={() => setSelectedFabric('all')}
-                    className={`px-2.5 py-1 text-[11px] rounded border transition ${
+                    onClick={() => {
+                      setSelectedFabric('all');
+                      scrollToTop();
+                    }}
+                    className={`px-2.5 py-1 text-[11px] rounded-lg border transition cursor-pointer ${
                       selectedFabric === 'all' ? 'bg-[#9E8055] text-white border-[#9E8055]' : 'bg-white text-[#555] border-[#EAE4DC]'
                     }`}
                   >
@@ -278,8 +480,11 @@ export const ShopView: React.FC = () => {
                   {fabrics.map(fab => (
                     <button
                       key={fab}
-                      onClick={() => setSelectedFabric(fab)}
-                      className={`px-2.5 py-1 text-[11px] rounded border transition ${
+                      onClick={() => {
+                        setSelectedFabric(fab);
+                        scrollToTop();
+                      }}
+                      className={`px-2.5 py-1 text-[11px] rounded-lg border transition cursor-pointer ${
                         selectedFabric === fab ? 'bg-[#9E8055] text-white border-[#9E8055]' : 'bg-white text-[#555] border-[#EAE4DC]'
                       }`}
                     >
@@ -294,8 +499,11 @@ export const ShopView: React.FC = () => {
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-[#222]">Size Options</h4>
                 <div className="flex flex-wrap gap-1.5">
                   <button
-                    onClick={() => setSelectedSize('all')}
-                    className={`px-2.5 py-1 text-[11px] rounded border transition ${
+                    onClick={() => {
+                      setSelectedSize('all');
+                      scrollToTop();
+                    }}
+                    className={`px-2.5 py-1 text-[11px] rounded-lg border transition cursor-pointer ${
                       selectedSize === 'all' ? 'bg-[#222] text-white border-[#222]' : 'bg-white text-[#555] border-[#EAE4DC]'
                     }`}
                   >
@@ -304,8 +512,11 @@ export const ShopView: React.FC = () => {
                   {sizes.map(sz => (
                     <button
                       key={sz}
-                      onClick={() => setSelectedSize(sz)}
-                      className={`px-2.5 py-1 text-[11px] rounded border transition ${
+                      onClick={() => {
+                        setSelectedSize(sz);
+                        scrollToTop();
+                      }}
+                      className={`px-2.5 py-1 text-[11px] rounded-lg border transition cursor-pointer ${
                         selectedSize === sz ? 'bg-[#222] text-white border-[#222]' : 'bg-white text-[#555] border-[#EAE4DC]'
                       }`}
                     >
@@ -327,14 +538,17 @@ export const ShopView: React.FC = () => {
                   max="40000"
                   step="1000"
                   value={maxPrice}
-                  onChange={(e) => setMaxPrice(Number(e.target.value))}
-                  className="w-full accent-[#9E8055]"
+                  onChange={(e) => {
+                    setMaxPrice(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="w-full accent-[#9E8055] cursor-pointer"
                 />
               </div>
 
             </aside>
 
-            {/* Right Products Grid */}
+            {/* Right Products Grid & Pagination */}
             <div className="flex-1">
               {filteredProducts.length === 0 ? (
                 <div className="bg-white border border-[#EAE4DC] rounded-xl p-16 text-center space-y-4">
@@ -343,21 +557,114 @@ export const ShopView: React.FC = () => {
                   <p className="text-xs text-[#777]">Try clearing your fabric, size, or category filters to view more items.</p>
                   <button
                     onClick={resetFilters}
-                    className="px-6 py-2.5 bg-[#222222] text-white text-xs font-semibold uppercase tracking-wider rounded hover:bg-[#9E8055] transition"
+                    className="px-6 py-2.5 bg-[#222222] text-white text-xs font-semibold uppercase tracking-wider rounded-lg hover:bg-[#9E8055] transition cursor-pointer shadow-sm"
                   >
                     Clear All Filters
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                  {filteredProducts.map(product => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onQuickView={(p) => setQuickViewProduct(p)}
-                    />
-                  ))}
-                </div>
+                <>
+                  {/* Dynamic Product Grid */}
+                  <div className={getGridClass()}>
+                    {paginatedProducts.map(product => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onQuickView={(p) => setQuickViewProduct(p)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* 3. PAGE NUMBERS PAGINATION BAR */}
+                  {totalPages > 1 && (
+                    <div className="mt-12 pt-8 border-t border-[#EAE4DC] flex flex-col sm:flex-row items-center justify-between gap-4">
+                      
+                      {/* Summary Text */}
+                      <div className="text-xs text-gray-500 font-medium order-2 sm:order-1">
+                        Page <strong className="text-[#1E1E24]">{currentPage}</strong> of <strong className="text-[#1E1E24]">{totalPages}</strong> ({filteredProducts.length} total products)
+                      </div>
+
+                      {/* Numbered Page Buttons */}
+                      <nav className="flex items-center gap-1.5 order-1 sm:order-2" aria-label="Pagination">
+                        
+                        {/* First Page */}
+                        <button
+                          onClick={() => handlePageChange(1)}
+                          disabled={currentPage === 1}
+                          className="p-2 rounded-lg border border-[#EAE4DC] text-[#222] hover:bg-[#F5F1EC] disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                          aria-label="First page"
+                          title="First page"
+                        >
+                          <ChevronsLeft className="w-4 h-4" />
+                        </button>
+
+                        {/* Previous Page */}
+                        <button
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="p-2 rounded-lg border border-[#EAE4DC] text-[#222] hover:bg-[#F5F1EC] disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                          aria-label="Previous page"
+                          title="Previous page"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+
+                        {/* Numbered Buttons */}
+                        {pageNumbers.map((page, pIdx) => {
+                          if (page === '...') {
+                            return (
+                              <span key={`ellipsis-${pIdx}`} className="px-2 text-xs text-gray-400 font-bold select-none">
+                                ...
+                              </span>
+                            );
+                          }
+
+                          const pageNum = Number(page);
+                          const isActive = pageNum === currentPage;
+
+                          return (
+                            <button
+                              key={`page-${pageNum}`}
+                              onClick={() => handlePageChange(pageNum)}
+                              className={`min-w-[36px] h-9 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                isActive
+                                  ? 'bg-[#1E1E24] text-white shadow-sm border border-[#1E1E24]'
+                                  : 'bg-white text-[#444] border border-[#EAE4DC] hover:bg-[#FAF8F5] hover:border-[#8B5E34] hover:text-[#1E1E24]'
+                              }`}
+                              aria-current={isActive ? 'page' : undefined}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+
+                        {/* Next Page */}
+                        <button
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className="p-2 rounded-lg border border-[#EAE4DC] text-[#222] hover:bg-[#F5F1EC] disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                          aria-label="Next page"
+                          title="Next page"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+
+                        {/* Last Page */}
+                        <button
+                          onClick={() => handlePageChange(totalPages)}
+                          disabled={currentPage === totalPages}
+                          className="p-2 rounded-lg border border-[#EAE4DC] text-[#222] hover:bg-[#F5F1EC] disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                          aria-label="Last page"
+                          title="Last page"
+                        >
+                          <ChevronsRight className="w-4 h-4" />
+                        </button>
+
+                      </nav>
+
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { HomeView } from './views/storefront/HomeView';
 import { ShopView } from './views/storefront/ShopView';
@@ -16,7 +16,16 @@ import { AdminAuthView } from './views/admin/AdminAuthView';
 import { CustomerAuthModal } from './components/storefront/CustomerAuthModal';
 
 const AppContent: React.FC = () => {
-  const { userRole, isAdminAuthenticated, currentView } = useApp();
+  const { userRole, isAdminAuthenticated, currentView, selectedProductId } = useApp();
+
+  // Guarantee instant scroll to top on any view or product change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, [currentView, selectedProductId]);
 
   if (userRole === 'admin') {
     if (!isAdminAuthenticated) {
