@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { uploadImageFile } from '../../utils/imageStorage';
 import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
@@ -33,6 +33,22 @@ export const AdminBanners: React.FC = () => {
     left: { ...dualEditorial.left },
     right: { ...dualEditorial.right }
   });
+
+  // Sync local editor state when loaded from MongoDB Atlas / API
+  useEffect(() => {
+    if (instantClassics && instantClassics.title) {
+      setIcData({ ...instantClassics });
+    }
+  }, [instantClassics]);
+
+  useEffect(() => {
+    if (dualEditorial && dualEditorial.left && dualEditorial.right) {
+      setDeData({
+        left: { ...dualEditorial.left },
+        right: { ...dualEditorial.right }
+      });
+    }
+  }, [dualEditorial]);
 
   const triggerToast = (msg: string) => {
     setSaveSuccessMsg(msg);

@@ -283,7 +283,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return rest as T;
   };
 
-  // Sync products & orders from MongoDB Atlas on mount if server database has records
+  // Sync all database collections from MongoDB Atlas / Server on mount so visitors and admins always see latest live data
   useEffect(() => {
     fetch('/api/products')
       .then(res => res.json())
@@ -302,7 +302,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (data.success && Array.isArray(data.orders) && data.orders.length > 0) {
           const cleanOrders = data.orders.map((o: any) => stripMongoId(o));
           setOrders(prev => {
-            // Merge existing local orders with MongoDB orders
             const map = new Map();
             cleanOrders.forEach((o: Order) => map.set(o.id, o));
             prev.forEach(o => {
@@ -312,6 +311,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             localStorage.setItem('sasa_orders', JSON.stringify(merged));
             return merged;
           });
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/menu')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.menuItems) && data.menuItems.length > 0) {
+          const cleanMenu = data.menuItems.map((m: any) => stripMongoId(m));
+          setMenuItems(cleanMenu);
+          localStorage.setItem('sasa_menu_items', JSON.stringify(cleanMenu));
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/instant-classics')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.instantClassics && data.instantClassics.title) {
+          const cleanIc = stripMongoId(data.instantClassics);
+          setInstantClassics(cleanIc);
+          localStorage.setItem('sasa_instant_classics', JSON.stringify(cleanIc));
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/dual-editorial')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.dualEditorial && data.dualEditorial.left && data.dualEditorial.right) {
+          const cleanDe = {
+            left: stripMongoId(data.dualEditorial.left),
+            right: stripMongoId(data.dualEditorial.right)
+          };
+          setDualEditorial(cleanDe);
+          localStorage.setItem('sasa_dual_editorial', JSON.stringify(cleanDe));
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/banners')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.banners) && data.banners.length > 0) {
+          const cleanBanners = data.banners.map((b: any) => stripMongoId(b));
+          setBanners(cleanBanners);
+          localStorage.setItem('sasa_banners', JSON.stringify(cleanBanners));
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.settings && data.settings.storeName) {
+          const cleanSettings = stripMongoId(data.settings);
+          setSettings(prev => ({ ...prev, ...cleanSettings }));
+          localStorage.setItem('sasa_settings', JSON.stringify(cleanSettings));
         }
       })
       .catch(() => {});
@@ -447,7 +504,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [userRole]);
 
   const updateMenuItems = (items: MenuItem[]) => {
-    setMenuItems(items);
+    const cleanItems = items.map(i => stripMongoId(i));
+    setMenuItems(cleanItems);
+    localStorage.setItem('sasa_menu_items', JSON.stringify(cleanItems));
+    fetch('/api/menu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ menuItems: cleanItems })
+    }).catch(err => console.warn('[MENU SYNC ERROR]', err));
   };
 
   // Data Wipe and Sample Seeding Functions
@@ -989,25 +1053,88 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...bannerData,
       id: `ban-${Date.now()}`
     };
-    setBanners(prev => [...prev, newBanner]);
+    const cleanBanner = stripMongoId(newBanner);
+    setBanners(prev => {
+      const updated = [...prev, cleanBanner];
+      localStorage.setItem('sasa_banners', JSON.stringify(updated));
+      return updated;
+    });
+    fetch('/api/banners', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ banner: cleanBanner })
+    }).catch(err => console.warn('[BANNER ADD NOTICE]', err));
   };
 
   const updateBanner = (updated: Banner) => {
-    setBanners(prev => prev.map(b => b.id === updated.id ? updated : b));
+    const cleanBanner = stripMongoId(updated);
+    setBanners(prev => {
+      const updatedList = prev.map(b => b.id === cleanBanner.id ? cleanBanner : b);
+      localStorage.setItem('sasa_banners', JSON.stringify(updatedList));
+      return updatedList;
+    });
+    fetch('/api/banners', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ banner: cleanBanner })
+    }).catch(err => console.warn('[BANNER UPDATE NOTICE]', err));
   };
 
   const deleteBanner = (id: string) => {
-    setBanners(prev => prev.filter(b => b.id !== id));
+    setBanners(prev => {
+      const updated = prev.filter(b => b.id !== id);
+      localStorage.setItem('sasa_banners', JSON.stringify(updated));
+      return updated;
+    });
+    fetch(`/api/banners/${id}`, {
+      method: 'DELETE'
+    }).catch(err => console.warn('[BANNER DELETE NOTICE]', err));
   };
 
-  const updateSettings = (newSettings: StoreSettings) => setSettings(newSettings);
+  const updateSettings = (newSettings: StoreSettings) => {
+    const clean = stripMongoId(newSettings);
+    setSettings(clean);
+    localStorage.setItem('sasa_settings', JSON.stringify(clean));
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ settings: clean })
+    }).catch(err => console.warn('[SETTINGS SYNC NOTICE]', err));
+  };
 
   const updateCMSPage = (page: CMSPage) => {
-    setCmsPages(prev => prev.map(p => p.id === page.id ? page : p));
+    const clean = stripMongoId(page);
+    setCmsPages(prev => {
+      const updated = prev.map(p => p.id === clean.id ? clean : p);
+      localStorage.setItem('sasa_cms', JSON.stringify(updated));
+      return updated;
+    });
   };
 
-  const updateInstantClassics = (data: InstantClassicsSection) => setInstantClassics(data);
-  const updateDualEditorial = (data: DualEditorialSection) => setDualEditorial(data);
+  const updateInstantClassics = (data: InstantClassicsSection) => {
+    const clean = stripMongoId(data);
+    setInstantClassics(clean);
+    localStorage.setItem('sasa_instant_classics', JSON.stringify(clean));
+    fetch('/api/instant-classics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ instantClassics: clean })
+    }).catch(err => console.warn('[INSTANT CLASSICS SYNC NOTICE]', err));
+  };
+
+  const updateDualEditorial = (data: DualEditorialSection) => {
+    const clean: DualEditorialSection = {
+      left: stripMongoId(data.left),
+      right: stripMongoId(data.right)
+    };
+    setDualEditorial(clean);
+    localStorage.setItem('sasa_dual_editorial', JSON.stringify(clean));
+    fetch('/api/dual-editorial', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dualEditorial: clean })
+    }).catch(err => console.warn('[DUAL EDITORIAL SYNC NOTICE]', err));
+  };
 
   // Automatic universal scroll-to-top handler for all views, categories, and products
   const handleSetCurrentView = (view: string) => {

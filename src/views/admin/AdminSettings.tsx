@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Save, CheckCircle, Store, Truck, Mail, Send, Server, AlertCircle, Copy, Shield, Key, Database, RefreshCw, Layers, CheckCircle2, Globe, HardDrive, Link as LinkIcon, ArrowRight, Sparkles } from 'lucide-react';
 
 export const AdminSettings: React.FC = () => {
-  const { settings, updateSettings, products, orders } = useApp();
+  const { settings, updateSettings, products, orders, banners, menuItems, instantClassics, dualEditorial } = useApp();
 
   const [storeName, setStoreName] = useState(settings.storeName);
   const [phone, setPhone] = useState(settings.phone);
@@ -196,11 +196,16 @@ export const AdminSettings: React.FC = () => {
         body: JSON.stringify({
           products,
           orders,
+          banners,
+          menuItems,
+          instantClassics,
+          dualEditorial,
           settings: {
             storeName,
             email,
             phone,
             address,
+            instagramUrl,
             defaultShippingFee,
             freeShippingThreshold
           }

@@ -970,6 +970,15 @@ app.post('/api/upload/multiple', (req, res) => {
   }
 });
 
+// In-memory fallback store for server session persistence
+const serverFallbackStore = {
+  menuItems: null,
+  instantClassics: null,
+  dualEditorial: null,
+  banners: [],
+  settings: null
+};
+
 // GET /api/products: Fetch products from MongoDB Atlas or return local fallback
 app.get('/api/products', async (req, res) => {
   try {
@@ -1126,6 +1135,37 @@ app.post('/api/db/sync', async (req, res) => {
       }
     }
 
+    const { menuItems: syncMenuItems, instantClassics: syncInstantClassics, dualEditorial: syncDualEditorial } = req.body || {};
+
+    if (Array.isArray(syncMenuItems) && syncMenuItems.length > 0) {
+      const cleanMenu = syncMenuItems.map(i => cleanMongoPayload(i));
+      await db.collection('settings').updateOne({ key: 'navigation_menu' }, { $set: { key: 'navigation_menu', menuItems: cleanMenu } }, { upsert: true });
+    }
+
+    if (syncInstantClassics) {
+      const cleanIc = {
+        ...syncInstantClassics,
+        imageUrl: saveBase64Image(syncInstantClassics.imageUrl, 'instant')
+      };
+      const updateData = cleanMongoPayload(cleanIc);
+      await db.collection('settings').updateOne({ key: 'instant_classics' }, { $set: { key: 'instant_classics', ...updateData } }, { upsert: true });
+    }
+
+    if (syncDualEditorial) {
+      const cleanDe = {
+        left: {
+          ...syncDualEditorial.left,
+          imageUrl: saveBase64Image(syncDualEditorial.left?.imageUrl, 'dual_left')
+        },
+        right: {
+          ...syncDualEditorial.right,
+          imageUrl: saveBase64Image(syncDualEditorial.right?.imageUrl, 'dual_right')
+        }
+      };
+      const updateData = cleanMongoPayload(cleanDe);
+      await db.collection('settings').updateOne({ key: 'dual_editorial' }, { $set: { key: 'dual_editorial', ...updateData } }, { upsert: true });
+    }
+
     if (settings) {
       const updateData = cleanMongoPayload(settings);
       await db.collection('settings').updateOne({ key: 'store_settings' }, { $set: updateData }, { upsert: true });
@@ -1133,10 +1173,10 @@ app.post('/api/db/sync', async (req, res) => {
 
     return res.json({
       success: true,
-      message: `Successfully synced ${productsCount} products and ${ordersCount} orders to MongoDB Atlas! (Images stored in Website File Storage, Links stored in MongoDB Atlas)`,
+      message: `Successfully synced ${productsCount} products, ${ordersCount} orders, navigation menu, and homepage editorial sections to MongoDB Atlas!`,
       productsCount,
       ordersCount,
-      storageArchitecture: 'Images → Website File Storage (/uploads) | Product Data & Links → MongoDB Atlas'
+      storageArchitecture: 'Images → Website File Storage (/uploads) | Product Data, Editorial & Links → MongoDB Atlas'
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -1149,13 +1189,16 @@ app.get('/api/banners', async (req, res) => {
     const db = await getMongoDatabase();
     if (db) {
       const rawBanners = await db.collection('banners').find({}).toArray();
-      const banners = rawBanners.map(b => cleanMongoPayload(b));
-      return res.json({ success: true, source: 'mongodb_atlas', banners });
+      if (rawBanners && rawBanners.length > 0) {
+        const banners = rawBanners.map(b => cleanMongoPayload(b));
+        serverFallbackStore.banners = banners;
+        return res.json({ success: true, source: 'mongodb_atlas', banners });
+      }
     }
   } catch (err) {
     console.warn('[MONGODB BANNERS FETCH ERROR]', err.message);
   }
-  return res.json({ success: true, source: 'local', banners: [] });
+  return res.json({ success: true, source: 'local', banners: serverFallbackStore.banners || [] });
 });
 
 // POST /api/banners: Save or update banner
@@ -1165,6 +1208,14 @@ app.post('/api/banners', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Missing banner data or ID' });
   }
   const cleanBanner = { ...banner, imageUrl: saveBase64Image(banner.imageUrl, 'banner') };
+  const existingIdx = (serverFallbackStore.banners || []).findIndex(b => b.id === cleanBanner.id);
+  if (existingIdx >= 0) {
+    serverFallbackStore.banners[existingIdx] = cleanBanner;
+  } else {
+    if (!serverFallbackStore.banners) serverFallbackStore.banners = [];
+    serverFallbackStore.banners.push(cleanBanner);
+  }
+
   try {
     const db = await getMongoDatabase();
     if (db) {
@@ -1182,6 +1233,168 @@ app.post('/api/banners', async (req, res) => {
   return res.json({ success: true, source: 'local_fallback', banner: cleanBanner });
 });
 
+// DELETE /api/banners/:id: Delete banner
+app.delete('/api/banners/:id', async (req, res) => {
+  const { id } = req.params;
+  if (serverFallbackStore.banners) {
+    serverFallbackStore.banners = serverFallbackStore.banners.filter(b => b.id !== id);
+  }
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      await db.collection('banners').deleteOne({ id });
+      return res.json({ success: true, source: 'mongodb_atlas', id });
+    }
+  } catch (err) {
+    console.warn('[MONGODB BANNER DELETE ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local_fallback', id });
+});
+
+// GET /api/menu: Fetch navigation menu items
+app.get('/api/menu', async (req, res) => {
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const doc = await db.collection('settings').findOne({ key: 'navigation_menu' });
+      if (doc && Array.isArray(doc.menuItems)) {
+        const menuItems = doc.menuItems.map(i => cleanMongoPayload(i));
+        serverFallbackStore.menuItems = menuItems;
+        return res.json({ success: true, source: 'mongodb_atlas', menuItems });
+      }
+    }
+  } catch (err) {
+    console.warn('[MONGODB MENU FETCH ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local', menuItems: serverFallbackStore.menuItems });
+});
+
+// POST /api/menu: Save navigation menu items
+app.post('/api/menu', async (req, res) => {
+  const { menuItems } = req.body || {};
+  if (!Array.isArray(menuItems)) {
+    return res.status(400).json({ success: false, message: 'Missing menuItems array' });
+  }
+  const cleanMenu = menuItems.map(i => cleanMongoPayload(i));
+  serverFallbackStore.menuItems = cleanMenu;
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      await db.collection('settings').updateOne(
+        { key: 'navigation_menu' },
+        { $set: { key: 'navigation_menu', menuItems: cleanMenu, updatedAt: new Date().toISOString() } },
+        { upsert: true }
+      );
+      return res.json({ success: true, source: 'mongodb_atlas', menuItems: cleanMenu });
+    }
+  } catch (err) {
+    console.warn('[MONGODB MENU SAVE ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local_fallback', menuItems: cleanMenu });
+});
+
+// GET /api/instant-classics: Fetch Instant Classics section details
+app.get('/api/instant-classics', async (req, res) => {
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const doc = await db.collection('settings').findOne({ key: 'instant_classics' });
+      if (doc) {
+        const cleanDoc = cleanMongoPayload(doc);
+        const { key, ...instantClassics } = cleanDoc;
+        serverFallbackStore.instantClassics = instantClassics;
+        return res.json({ success: true, source: 'mongodb_atlas', instantClassics });
+      }
+    }
+  } catch (err) {
+    console.warn('[MONGODB INSTANT CLASSICS FETCH ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local', instantClassics: serverFallbackStore.instantClassics });
+});
+
+// POST /api/instant-classics: Save Instant Classics section details
+app.post('/api/instant-classics', async (req, res) => {
+  const { instantClassics } = req.body || {};
+  if (!instantClassics) {
+    return res.status(400).json({ success: false, message: 'Missing instantClassics payload' });
+  }
+  const cleanIc = {
+    ...instantClassics,
+    imageUrl: saveBase64Image(instantClassics.imageUrl, 'instant'),
+    updatedAt: new Date().toISOString()
+  };
+  const updateData = cleanMongoPayload(cleanIc);
+  serverFallbackStore.instantClassics = updateData;
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      await db.collection('settings').updateOne(
+        { key: 'instant_classics' },
+        { $set: { key: 'instant_classics', ...updateData } },
+        { upsert: true }
+      );
+      return res.json({ success: true, source: 'mongodb_atlas', instantClassics: updateData });
+    }
+  } catch (err) {
+    console.warn('[MONGODB INSTANT CLASSICS SAVE ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local_fallback', instantClassics: updateData });
+});
+
+// GET /api/dual-editorial: Fetch "2 Big Images" Section details
+app.get('/api/dual-editorial', async (req, res) => {
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const doc = await db.collection('settings').findOne({ key: 'dual_editorial' });
+      if (doc) {
+        const cleanDoc = cleanMongoPayload(doc);
+        const { key, ...dualEditorial } = cleanDoc;
+        serverFallbackStore.dualEditorial = dualEditorial;
+        return res.json({ success: true, source: 'mongodb_atlas', dualEditorial });
+      }
+    }
+  } catch (err) {
+    console.warn('[MONGODB DUAL EDITORIAL FETCH ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local', dualEditorial: serverFallbackStore.dualEditorial });
+});
+
+// POST /api/dual-editorial: Save "2 Big Images" Section details
+app.post('/api/dual-editorial', async (req, res) => {
+  const { dualEditorial } = req.body || {};
+  if (!dualEditorial || !dualEditorial.left || !dualEditorial.right) {
+    return res.status(400).json({ success: false, message: 'Missing dualEditorial payload' });
+  }
+  const cleanDe = {
+    left: {
+      ...dualEditorial.left,
+      imageUrl: saveBase64Image(dualEditorial.left?.imageUrl, 'dual_left')
+    },
+    right: {
+      ...dualEditorial.right,
+      imageUrl: saveBase64Image(dualEditorial.right?.imageUrl, 'dual_right')
+    },
+    updatedAt: new Date().toISOString()
+  };
+  const updateData = cleanMongoPayload(cleanDe);
+  serverFallbackStore.dualEditorial = updateData;
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      await db.collection('settings').updateOne(
+        { key: 'dual_editorial' },
+        { $set: { key: 'dual_editorial', ...updateData } },
+        { upsert: true }
+      );
+      return res.json({ success: true, source: 'mongodb_atlas', dualEditorial: updateData });
+    }
+  } catch (err) {
+    console.warn('[MONGODB DUAL EDITORIAL SAVE ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local_fallback', dualEditorial: updateData });
+});
+
 // GET /api/settings: Fetch store settings
 app.get('/api/settings', async (req, res) => {
   try {
@@ -1189,13 +1402,15 @@ app.get('/api/settings', async (req, res) => {
     if (db) {
       const rawSettings = await db.collection('settings').findOne({ key: 'store_settings' });
       if (rawSettings) {
-        return res.json({ success: true, source: 'mongodb_atlas', settings: cleanMongoPayload(rawSettings) });
+        const cleanSettings = cleanMongoPayload(rawSettings);
+        serverFallbackStore.settings = cleanSettings;
+        return res.json({ success: true, source: 'mongodb_atlas', settings: cleanSettings });
       }
     }
   } catch (err) {
     console.warn('[MONGODB SETTINGS FETCH ERROR]', err.message);
   }
-  return res.json({ success: true, source: 'local', settings: null });
+  return res.json({ success: true, source: 'local', settings: serverFallbackStore.settings });
 });
 
 // POST /api/settings: Save store settings
@@ -1218,7 +1433,9 @@ app.post('/api/settings', async (req, res) => {
   } catch (err) {
     console.warn('[MONGODB SETTINGS SAVE ERROR]', err.message);
   }
-  return res.json({ success: true, source: 'local_fallback', settings });
+  const cleanSettings = cleanMongoPayload(settings);
+  serverFallbackStore.settings = cleanSettings;
+  return res.json({ success: true, source: 'local_fallback', settings: cleanSettings });
 });
 
 // ----------------------

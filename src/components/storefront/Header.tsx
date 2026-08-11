@@ -19,19 +19,14 @@ export const Header: React.FC = () => {
 
   const cartItemsCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  // Dynamic menu items from admin configuration, excluding Luxury Pret as requested
-  const rawMenuItems = (menuItems && menuItems.length > 0) ? menuItems : [
+  // Dynamic menu items from database / admin configuration
+  const activeMenuItems = (menuItems && menuItems.length > 0) ? menuItems : [
     { id: 'm-1', label: 'Home', targetType: 'view', targetValue: 'home' },
     { id: 'm-2', label: 'New Arrivals', targetType: 'category', targetValue: 'new-arrivals' },
     { id: 'm-3', label: 'Pret', targetType: 'category', targetValue: 'pret' },
     { id: 'm-4', label: 'Unstitched', targetType: 'category', targetValue: 'unstitched' },
     { id: 'm-5', label: 'Contact', targetType: 'view', targetValue: 'contact' },
   ];
-
-  const activeMenuItems = rawMenuItems.filter(item => 
-    !item.label.toLowerCase().includes('luxury pret') && 
-    !item.targetValue.toLowerCase().includes('luxury-pret')
-  );
 
   const handleMenuItemClick = (item: { targetType: string; targetValue: string }) => {
     if (item.targetType === 'category') {

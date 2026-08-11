@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { MenuItem } from '../../types';
 import {
@@ -12,6 +12,13 @@ export const AdminMenuSettings: React.FC = () => {
   const [items, setItems] = useState<MenuItem[]>(menuItems);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Sync with global menu items when loaded from MongoDB Atlas / API
+  useEffect(() => {
+    if (menuItems && menuItems.length > 0) {
+      setItems(menuItems);
+    }
+  }, [menuItems]);
 
   // Left panel selection state
   const [selectedPages, setSelectedPages] = useState<string[]>([]);

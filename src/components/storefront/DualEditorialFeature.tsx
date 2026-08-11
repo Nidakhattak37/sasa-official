@@ -92,7 +92,7 @@ export const DualEditorialFeature: React.FC = () => {
                 }}
                 className="px-7 py-3.5 bg-white text-[#1E1E24] hover:bg-[#8B5E34] hover:text-white font-bold text-xs uppercase tracking-widest rounded-xl shadow-2xl transition-all duration-300 flex items-center gap-3 group/btn"
               >
-                <span>{left.buttonText === 'Explore Summer Lawn' ? 'Show Now' : (left.buttonText || 'Show Now')}</span>
+                <span>{left.buttonText || 'Shop Now'}</span>
                 <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1.5 transition-transform" />
               </button>
             </div>
