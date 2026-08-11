@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Save, CheckCircle, Store, Truck, Mail, Send, Server, AlertCircle, Copy, Shield, Key, Database, RefreshCw, Layers, CheckCircle2, Globe } from 'lucide-react';
+import { Save, CheckCircle, Store, Truck, Mail, Send, Server, AlertCircle, Copy, Shield, Key, Database, RefreshCw, Layers, CheckCircle2, Globe, HardDrive, Link as LinkIcon, ArrowRight, Sparkles } from 'lucide-react';
 
 export const AdminSettings: React.FC = () => {
   const { settings, updateSettings, products, orders } = useApp();
@@ -329,6 +329,69 @@ MONGODB_DB_NAME=${mongoDbName || 'sasaofficial'}`;
             <span className="text-[10px] text-gray-500 mt-0.5 block font-mono truncate">
               {dbStatus.maskedUri || 'sasaofficial.xo5gxgs.mongodb.net'}
             </span>
+          </div>
+        </div>
+
+        {/* STORAGE ARCHITECTURE SYSTEM STATUS */}
+        <div className="p-4 bg-[#FAF8F5] rounded-xl border border-[#EAE4DC] space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-[#222] text-xs flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" /> Decoupled Storage Architecture
+            </span>
+            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">
+              Optimized & Active
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            {/* Website File Storage */}
+            <div className="p-3 bg-white rounded-lg border border-[#EAE4DC] flex items-start gap-3 shadow-2xs">
+              <div className="p-2 bg-amber-50 text-[#8B5E34] rounded-lg border border-amber-200 flex-shrink-0">
+                <HardDrive className="w-4 h-4" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-[#1E1E24] text-xs">Website Image Storage</span>
+                  <span className="text-[9px] font-mono bg-amber-50 text-[#8B5E34] px-1.5 py-0.5 rounded border border-amber-200">
+                    /public/uploads
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-600 leading-snug">
+                  High-resolution dress photographs are saved directly to website file storage on disk. Fast static CDN caching, no database bloat.
+                </p>
+              </div>
+            </div>
+
+            {/* MongoDB Metadata & Links Storage */}
+            <div className="p-3 bg-white rounded-lg border border-[#EAE4DC] flex items-start gap-3 shadow-2xs">
+              <div className="p-2 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 flex-shrink-0">
+                <Database className="w-4 h-4" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-[#1E1E24] text-xs">MongoDB Atlas Document Store</span>
+                  <span className="text-[9px] font-mono bg-emerald-50 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-200">
+                    Link URLs Only
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-600 leading-snug">
+                  MongoDB Atlas stores product information (name, SKU, prices, inventory, sizes) and references the website image link URLs.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-2.5 bg-[#1E1E24] text-white rounded-lg flex flex-col sm:flex-row items-center justify-between text-[10px] font-mono gap-2">
+            <span className="text-[#D4AF37] font-semibold flex items-center gap-1">
+              <LinkIcon className="w-3 h-3" /> Data Pipeline:
+            </span>
+            <div className="flex items-center gap-1.5 text-gray-300">
+              <span className="text-white">Admin Uploads Photo</span>
+              <ArrowRight className="w-3 h-3 text-[#D4AF37]" />
+              <span className="text-amber-300">Saved to Website Storage (/uploads/)</span>
+              <ArrowRight className="w-3 h-3 text-[#D4AF37]" />
+              <span className="text-emerald-400">Link URL Saved in MongoDB Atlas</span>
+            </div>
           </div>
         </div>
 

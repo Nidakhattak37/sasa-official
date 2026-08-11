@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Product } from '../../types';
 import { formatPrice } from '../../utils/currency';
-import { Plus, Edit, Trash2, Copy, Search, Sparkles, X, Check, Eye, Upload, Image as ImageIcon, Star, Layers, Watch, Footprints, Tag } from 'lucide-react';
+import { uploadImageFile } from '../../utils/imageStorage';
+import { Plus, Edit, Trash2, Copy, Search, Sparkles, X, Check, Eye, Upload, Image as ImageIcon, Star, Layers, Watch, Footprints, Tag, Loader2, HardDrive, Database, Link as LinkIcon } from 'lucide-react';
 
 const COLLECTION_TYPES = [
   'Summer Lawn',
@@ -46,17 +47,18 @@ export const AdminProducts: React.FC = () => {
   const [season, setSeason] = useState('Summer Collection');
   const [pieceType, setPieceType] = useState('3 Piece');
   const [stitchingStatus, setStitchingStatus] = useState('Unstitched');
-  const [price, setPrice] = useState<number>(12000);
-  const [originalPrice, setOriginalPrice] = useState<number>(15000);
-  const [stock, setStock] = useState<number>(20);
+  const [price, setPrice] = useState<number | ''>('');
+  const [originalPrice, setOriginalPrice] = useState<number | ''>('');
+  const [stock, setStock] = useState<number | ''>('');
   const [year, setYear] = useState<number | string>(2025);
   const [sku, setSku] = useState('');
   const [fabricDetails, setFabricDetails] = useState('');
   const [description, setDescription] = useState('');
   const [productImages, setProductImages] = useState<string[]>([]);
-  const [selectedSizes, setSelectedSizes] = useState<string[]>(['Unstitched']);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [customSizeInput, setCustomSizeInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isNewArrival, setIsNewArrival] = useState(true);
   const [isBestSeller, setIsBestSeller] = useState(false);
   const [isSale, setIsSale] = useState(false);
@@ -70,18 +72,6 @@ export const AdminProducts: React.FC = () => {
       if (matchedCategory.season) setSeason(matchedCategory.season);
       if (matchedCategory.pieceType) setPieceType(matchedCategory.pieceType);
       if (matchedCategory.stitchingStatus) setStitchingStatus(matchedCategory.stitchingStatus);
-
-      // Adapt sizes
-      if (matchedCategory.department?.includes('Footwear') || matchedCategory.department?.includes('Shoes') || catName.toLowerCase().includes('shoe') || catName.toLowerCase().includes('khussa')) {
-        setSelectedSizes(['36', '37', '38', '39', '40', '41']);
-        setFabricDetails('Handcrafted Leather & Embroidered Velvet with Padded Sole');
-      } else if (matchedCategory.department?.includes('Watch') || catName.toLowerCase().includes('watch')) {
-        setSelectedSizes(['One Size', '38mm', '40mm']);
-        setFabricDetails('Sapphire Crystal Glass, Stainless Steel / Leather Strap');
-      } else if (matchedCategory.department?.includes('Bag') || matchedCategory.department?.includes('Jewelry') || matchedCategory.department?.includes('Fragrance')) {
-        setSelectedSizes(['Standard / One Size']);
-        setFabricDetails('Artisanal Handcrafted Finished Luxury Item');
-      }
     }
   };
 
@@ -95,19 +85,15 @@ export const AdminProducts: React.FC = () => {
     setSeason(categories[0]?.season || 'Summer Collection');
     setPieceType(categories[0]?.pieceType || '3 Piece');
     setStitchingStatus(categories[0]?.stitchingStatus || 'Unstitched');
-    setPrice(12900);
-    setOriginalPrice(15900);
-    setStock(15);
+    setPrice('');
+    setOriginalPrice('');
+    setStock('');
     setYear(2025);
-    setSku(`SASA-ITEM-${Math.floor(1000 + Math.random() * 9000)}`);
-    setFabricDetails('Pure Chiffon Dupatta with Embroidered Lawn Shirt');
-    setDescription('Intricately crafted luxury piece featuring artisanal craftsmanship and bespoke styling.');
-    setProductImages([
-      '/images/sky_blue_chikankari.jpg',
-      '/images/yellow_mustard_suit.jpg',
-      '/images/black_olive_suit.jpg'
-    ]);
-    setSelectedSizes(['XS', 'S', 'M', 'L', 'XL', 'Unstitched']);
+    setSku('');
+    setFabricDetails('');
+    setDescription('');
+    setProductImages([]);
+    setSelectedSizes([]);
     setUrlInput('');
     setCustomSizeInput('');
     setIsNewArrival(true);
@@ -159,22 +145,26 @@ export const AdminProducts: React.FC = () => {
     setCustomSizeInput('');
   };
 
-  // Image Upload File Handler
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image Upload File Handler: Saves files to Website File Storage and records link URLs
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const fileArray = Array.from(files);
-    fileArray.forEach((file: File) => {
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
-        const result = uploadEvent.target?.result as string;
-        if (result) {
-          setProductImages(prev => [...prev, result]);
+    setIsUploadingImage(true);
+    try {
+      const fileArray: File[] = Array.from(files);
+      for (const file of fileArray) {
+        const linkUrl = await uploadImageFile(file, 'product');
+        if (linkUrl) {
+          setProductImages(prev => [...prev, linkUrl]);
         }
-      };
-      reader.readAsDataURL(file);
-    });
+      }
+    } catch (err) {
+      console.warn('Image upload error:', err);
+    } finally {
+      setIsUploadingImage(false);
+      e.target.value = '';
+    }
   };
 
   const handleAddUrlImage = () => {
@@ -605,7 +595,8 @@ export const AdminProducts: React.FC = () => {
                     type="number"
                     required
                     value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
+                    onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="e.g. 12500"
                     className="w-full px-3 py-2 bg-white border border-[#EAE4DC] rounded-lg focus:ring-1 focus:ring-[#9E8055] focus:outline-none font-bold"
                   />
                 </div>
@@ -615,7 +606,8 @@ export const AdminProducts: React.FC = () => {
                   <input
                     type="number"
                     value={originalPrice}
-                    onChange={(e) => setOriginalPrice(Number(e.target.value))}
+                    onChange={(e) => setOriginalPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="e.g. 15000"
                     className="w-full px-3 py-2 bg-white border border-[#EAE4DC] rounded-lg focus:ring-1 focus:ring-[#9E8055] focus:outline-none text-gray-500"
                   />
                 </div>
@@ -626,7 +618,8 @@ export const AdminProducts: React.FC = () => {
                     type="number"
                     required
                     value={stock}
-                    onChange={(e) => setStock(Number(e.target.value))}
+                    onChange={(e) => setStock(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="e.g. 20"
                     className="w-full px-3 py-2 bg-white border border-[#EAE4DC] rounded-lg font-bold"
                   />
                 </div>
@@ -747,47 +740,67 @@ export const AdminProducts: React.FC = () => {
 
               {/* IMAGE UPLOAD & GALLERY SECTION */}
               <div className="bg-white p-4 rounded-xl border border-[#EAE4DC] space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <label className="font-bold text-[#222] text-sm flex items-center gap-2">
                     <ImageIcon className="w-4 h-4 text-[#8B5E34]" />
                     <span>Product Images Gallery ({productImages.length} attached)</span>
                   </label>
-                  <span className="text-[11px] text-gray-500">Upload multiple photos for front/back slider views</span>
+                  <div className="flex items-center gap-1.5 text-[10px] font-semibold text-[#8B5E34] bg-[#FAF8F5] px-2.5 py-1 rounded-md border border-[#EAE4DC]">
+                    <HardDrive className="w-3 h-3 text-[#8B5E34]" />
+                    <span>Files saved to Website Storage</span>
+                    <span className="text-gray-300">•</span>
+                    <Database className="w-3 h-3 text-emerald-600" />
+                    <span className="text-emerald-700">Links saved in MongoDB</span>
+                  </div>
                 </div>
 
                 {/* Drag and Drop / File Input Box */}
-                <div className="border-2 border-dashed border-[#D4AF37]/50 rounded-xl p-4 bg-white text-center hover:border-[#8B5E34] transition cursor-pointer relative group">
+                <div className={`border-2 border-dashed rounded-xl p-5 bg-white text-center transition cursor-pointer relative group ${
+                  isUploadingImage ? 'border-[#8B5E34] bg-[#FAF8F5]/50' : 'border-[#D4AF37]/50 hover:border-[#8B5E34]'
+                }`}>
                   <input
                     type="file"
                     accept="image/*"
                     multiple
+                    disabled={isUploadingImage}
                     onChange={handleFileUpload}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
                   />
                   <div className="flex flex-col items-center justify-center space-y-2 pointer-events-none">
                     <div className="p-3 bg-white border border-[#EAE4DC] rounded-full text-[#8B5E34] group-hover:scale-110 transition-transform shadow-2xs">
-                      <Upload className="w-5 h-5" />
+                      {isUploadingImage ? (
+                        <Loader2 className="w-5 h-5 animate-spin text-[#8B5E34]" />
+                      ) : (
+                        <Upload className="w-5 h-5" />
+                      )}
                     </div>
                     <div>
-                      <p className="font-bold text-xs text-[#222]">Click or Drag & Drop Images Here to Upload</p>
-                      <p className="text-[11px] text-gray-400">Supports JPG, PNG, WEBP from your computer or mobile camera</p>
+                      <p className="font-bold text-xs text-[#222]">
+                        {isUploadingImage ? 'Saving Images to Website Storage...' : 'Click or Drag & Drop Images Here to Upload'}
+                      </p>
+                      <p className="text-[11px] text-gray-400">
+                        Images are saved to /public/uploads/ and clean link URLs are prepared for MongoDB Atlas
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Alternative: Add Image URL Input */}
                 <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={urlInput}
-                    onChange={(e) => setUrlInput(e.target.value)}
-                    placeholder="Or paste image URL (e.g. https://...)"
-                    className="flex-1 px-3 py-2 bg-white border border-[#EAE4DC] rounded-lg text-xs"
-                  />
+                  <div className="relative flex-1">
+                    <LinkIcon className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={urlInput}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      placeholder="Or paste direct image URL (e.g. /uploads/dress.jpg or https://...)"
+                      className="w-full pl-9 pr-3 py-2 bg-white border border-[#EAE4DC] rounded-lg text-xs"
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={handleAddUrlImage}
-                    className="px-4 py-2 bg-[#8B5E34] text-white text-xs font-semibold rounded-lg hover:bg-[#6D4928] transition"
+                    className="px-4 py-2 bg-[#8B5E34] text-white text-xs font-semibold rounded-lg hover:bg-[#6D4928] transition cursor-pointer"
                   >
                     + Add Image Link
                   </button>
@@ -795,37 +808,51 @@ export const AdminProducts: React.FC = () => {
 
                 {/* Image Thumbnails Gallery Grid */}
                 {productImages.length > 0 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 pt-2">
-                    {productImages.map((imgUrl, index) => (
-                      <div key={index} className="relative group aspect-[3/4] bg-white rounded-lg border border-[#EAE4DC] overflow-hidden shadow-sm">
-                        <img src={imgUrl} alt="" className="w-full h-full object-cover" />
-                        
-                        {/* Primary Badge */}
-                        {index === 0 ? (
-                          <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-[#8B5E34] text-white text-[9px] font-bold rounded flex items-center gap-1">
-                            <Star className="w-2.5 h-2.5 fill-current" /> Cover
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleMakePrimaryImage(index)}
-                            className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition px-1.5 py-0.5 bg-black/70 text-white text-[9px] font-semibold rounded"
-                          >
-                            Set Cover
-                          </button>
-                        )}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 pt-2">
+                    {productImages.map((imgUrl, index) => {
+                      const isLocalLink = imgUrl.startsWith('/uploads/') || imgUrl.startsWith('/images/');
+                      return (
+                        <div key={index} className="flex flex-col gap-1">
+                          <div className="relative group aspect-[3/4] bg-white rounded-lg border border-[#EAE4DC] overflow-hidden shadow-sm">
+                            <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                            
+                            {/* Primary Badge */}
+                            {index === 0 ? (
+                              <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-[#8B5E34] text-white text-[9px] font-bold rounded flex items-center gap-1 shadow">
+                                <Star className="w-2.5 h-2.5 fill-current" /> Cover
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleMakePrimaryImage(index)}
+                                className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition px-1.5 py-0.5 bg-black/70 text-white text-[9px] font-semibold rounded cursor-pointer"
+                              >
+                                Set Cover
+                              </button>
+                            )}
 
-                        {/* Remove Image Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute top-1 right-1 p-1 bg-red-600/90 hover:bg-red-700 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
-                          title="Remove Image"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
+                            {/* Remove Image Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(index)}
+                              className="absolute top-1 right-1 p-1 bg-red-600/90 hover:bg-red-700 text-white rounded-full opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                              title="Remove Image"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+
+                            {/* Storage format badge */}
+                            <div className="absolute bottom-1 left-1 right-1 px-1 py-0.5 bg-black/60 backdrop-blur-xs text-white text-[8px] font-mono truncate rounded text-center">
+                              {isLocalLink ? 'Website Link' : 'URL Link'}
+                            </div>
+                          </div>
+                          
+                          <span className="text-[9px] text-gray-500 font-mono truncate px-1" title={imgUrl}>
+                            {imgUrl.length > 25 ? `${imgUrl.slice(0, 12)}...${imgUrl.slice(-10)}` : imgUrl}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

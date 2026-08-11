@@ -91,8 +91,6 @@ export const Footer: React.FC = () => {
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[#777777] text-[11px]">
           <p>© {new Date().getFullYear()} SASA Official. All Rights Reserved. Crafted with Elegance.</p>
           <div className="flex items-center space-x-4">
-            <span className="flex items-center gap-1 text-[#AAA]"><ShieldCheck className="w-3.5 h-3.5 text-green-500" /> SSL 256-Bit Encrypted Secure Checkout</span>
-            <span>•</span>
             <span>COD Available Nationwide</span>
           </div>
         </div>

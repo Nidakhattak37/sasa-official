@@ -17,13 +17,13 @@ export const CheckoutView: React.FC = () => {
 
   // Form State
   const [address, setAddress] = useState<ShippingAddress>({
-    fullName: 'Ayesha Khan',
-    email: 'ayesha.khan@gmail.com',
-    phone: '+92 300 1234567',
-    street: 'House 14, Block C, M.M. Alam Road, Gulberg III',
+    fullName: '',
+    email: '',
+    phone: '',
+    street: '',
     city: 'Lahore',
     state: 'Punjab',
-    postalCode: '54000',
+    postalCode: '',
     country: 'Pakistan'
   });
 
@@ -31,9 +31,9 @@ export const CheckoutView: React.FC = () => {
   const [customerNotes, setCustomerNotes] = useState('');
 
   // Card details mock
-  const [cardNumber, setCardNumber] = useState('4242 •••• •••• 4242');
-  const [cardExpiry, setCardExpiry] = useState('12/28');
-  const [cardCvc, setCardCvc] = useState('888');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvc, setCardCvc] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [placedOrderInfo, setPlacedOrderInfo] = useState<any | null>(null);
@@ -125,20 +125,13 @@ export const CheckoutView: React.FC = () => {
       <main className="flex-1 py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <span className="text-xs uppercase tracking-[0.25em] font-semibold text-[#9E8055]">
-                Checkout Flow
-              </span>
-              <h1 className="font-serif text-3xl font-normal text-[#222222] mt-1">
-                Express Checkout
-              </h1>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 px-3 py-1.5 rounded-full border border-green-200 font-semibold">
-              <Lock className="w-3.5 h-3.5" />
-              <span>256-Bit SSL Encrypted</span>
-            </div>
+          <div className="mb-8">
+            <span className="text-xs uppercase tracking-[0.25em] font-semibold text-[#9E8055]">
+              Checkout Flow
+            </span>
+            <h1 className="font-serif text-3xl font-normal text-[#222222] mt-1">
+              Express Checkout
+            </h1>
           </div>
 
           <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-10">

@@ -11,8 +11,8 @@ export const CustomerAuthModal: React.FC = () => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
 
   // Login state
-  const [loginEmail, setLoginEmail] = useState('ayesha.khan@gmail.com');
-  const [loginPassword, setLoginPassword] = useState('password123');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
   // Register state
   const [regName, setRegName] = useState('');
@@ -116,7 +116,7 @@ export const CustomerAuthModal: React.FC = () => {
                   required
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
-                  placeholder="ayesha.khan@gmail.com"
+                  placeholder="your.email@example.com"
                   className="w-full pl-9 pr-3 py-2.5 border border-[#EAE4DC] rounded-xl focus:outline-none focus:border-[#9E8055]"
                 />
               </div>
@@ -136,15 +136,6 @@ export const CustomerAuthModal: React.FC = () => {
                 />
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={handleQuickDemoCustomer}
-              className="w-full py-2 bg-[#F5F1EC] text-[#222] hover:bg-[#EAE4DC] text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition"
-            >
-              <KeyRound className="w-3.5 h-3.5 text-[#9E8055]" />
-              <span>⚡ Auto-fill Customer Account</span>
-            </button>
 
             <button
               type="submit"
@@ -167,7 +158,7 @@ export const CustomerAuthModal: React.FC = () => {
                   required
                   value={regName}
                   onChange={(e) => setRegName(e.target.value)}
-                  placeholder="e.g. Ayesha Khan"
+                  placeholder="e.g. Fatima Ali"
                   className="w-full pl-9 pr-3 py-2 border border-[#EAE4DC] rounded-xl focus:outline-none focus:border-[#9E8055]"
                 />
               </div>
@@ -182,7 +173,7 @@ export const CustomerAuthModal: React.FC = () => {
                   required
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
-                  placeholder="ayesha@gmail.com"
+                  placeholder="name@example.com"
                   className="w-full pl-9 pr-3 py-2 border border-[#EAE4DC] rounded-xl focus:outline-none focus:border-[#9E8055]"
                 />
               </div>

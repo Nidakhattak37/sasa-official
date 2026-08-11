@@ -257,33 +257,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : DEFAULT_MENU_ITEMS;
   });
 
-  // Storefront Data - Defaults to empty arrays so admin panel starts EMPTY as requested
+  // Storefront Data - Initialized with rich luxury catalog, persisted locally and synced with MongoDB Atlas
   const [products, setProducts] = useState<Product[]>(() => {
-    const isWiped = localStorage.getItem('sasa_v2_admin_wiped');
-    if (!isWiped) {
-      localStorage.setItem('sasa_products', JSON.stringify([]));
-      localStorage.setItem('sasa_orders', JSON.stringify([]));
-      localStorage.setItem('sasa_coupons', JSON.stringify([]));
-      localStorage.setItem('sasa_reviews', JSON.stringify([]));
-      localStorage.setItem('sasa_banners', JSON.stringify([]));
-      localStorage.setItem('sasa_customers', JSON.stringify([]));
-      localStorage.setItem('sasa_v2_admin_wiped', 'true');
-      return [];
-    }
     const saved = localStorage.getItem('sasa_products');
     if (saved) {
       try {
         const parsed: Product[] = JSON.parse(saved);
-        return parsed.map(p => ({
-          ...p,
-          sizes: (p.sizes || []).filter(sz => sz !== 'Custom Stitching' && sz !== 'Customized Stitching')
-        }));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(p => ({
+            ...p,
+            sizes: (p.sizes || []).filter(sz => sz !== 'Custom Stitching' && sz !== 'Customized Stitching')
+          }));
+        }
       } catch {
-        return [];
+        return INITIAL_PRODUCTS;
       }
     }
-    return [];
+    return INITIAL_PRODUCTS;
   });
+
+  // Sync products from MongoDB Atlas on mount if server database has records
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.products) && data.products.length > 0) {
+          setProducts(data.products);
+          localStorage.setItem('sasa_products', JSON.stringify(data.products));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const [categories, setCategories] = useState<Category[]>(() => {
     const saved = localStorage.getItem('sasa_categories');
@@ -842,14 +846,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date().toISOString().split('T')[0]
     };
     setProducts(prev => [newProd, ...prev]);
+
+    // Asynchronously sync product metadata & image links to backend / MongoDB Atlas
+    fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product: newProd })
+    }).catch(err => console.warn('[MONGODB SYNC NOTICE]', err));
   };
 
   const updateProduct = (updated: Product) => {
     setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
+
+    // Asynchronously sync updated product to backend / MongoDB Atlas
+    fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product: updated })
+    }).catch(err => console.warn('[MONGODB SYNC NOTICE]', err));
   };
 
   const deleteProduct = (id: string) => {
     setProducts(prev => prev.filter(p => p.id !== id));
+
+    // Asynchronously delete product in backend / MongoDB Atlas
+    fetch(`/api/products/${id}`, {
+      method: 'DELETE'
+    }).catch(err => console.warn('[MONGODB DELETE NOTICE]', err));
   };
 
   const duplicateProduct = (id: string) => {

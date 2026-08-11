@@ -9,7 +9,8 @@ import { CartDrawer } from '../../components/storefront/CartDrawer';
 import { SearchOverlay } from '../../components/storefront/SearchOverlay';
 import { formatPrice } from '../../utils/currency';
 import {
-  Star, Heart, ShoppingBag, Truck, ShieldCheck, Ruler, Check, ChevronRight, Share2, ZoomIn, MessageSquarePlus, RefreshCw
+  Star, Heart, ShoppingBag, Truck, ShieldCheck, Ruler, Check, ChevronRight, ChevronLeft,
+  Share2, ZoomIn, ZoomOut, Maximize2, RotateCcw, MessageSquarePlus, RefreshCw, X, Sparkles, Move
 } from 'lucide-react';
 
 export const ProductDetailView: React.FC = () => {
@@ -29,6 +30,13 @@ export const ProductDetailView: React.FC = () => {
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
 
+  // Image Magnifier & Zoom State
+  const [isMagnifierActive, setIsMagnifierActive] = useState(true);
+  const [isHovering, setIsHovering] = useState(false);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
+  const [modalZoom, setModalZoom] = useState(1.5);
+  const [modalPan, setModalPan] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
+
   // Review form state
   const [reviewName, setReviewName] = useState('');
   const [reviewEmail, setReviewEmail] = useState('');
@@ -46,6 +54,21 @@ export const ProductDetailView: React.FC = () => {
     : null;
 
   const relatedProducts = products.filter(p => p.id !== product.id && p.category === product.category).slice(0, 4);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    setMousePos({ x, y });
+  };
+
+  const handleModalMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (modalZoom <= 1) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    setModalPan({ x, y });
+  };
 
   const handleAddToCart = () => {
     addToCart(product, selectedSize, selectedColor, quantity);
@@ -109,27 +132,44 @@ export const ProductDetailView: React.FC = () => {
                 </div>
               )}
 
-              {/* Main Display Image */}
-              <div className="relative flex-1 aspect-[3/4] bg-white rounded-xl overflow-hidden border border-[#EAE4DC] group">
+              {/* Main Display Image with Interactive Hover Magnifier */}
+              <div
+                className="relative flex-1 aspect-[3/4] bg-[#FBF9F7] rounded-xl overflow-hidden border border-[#EAE4DC] group select-none cursor-crosshair"
+                onMouseEnter={() => setIsHovering(true)}
+                onMouseLeave={() => setIsHovering(false)}
+                onMouseMove={handleMouseMove}
+                onClick={() => setIsZoomOpen(true)}
+              >
                 <img
                   src={product.images[selectedImageIdx] || product.images[0]}
                   alt={product.name}
-                  className="w-full h-full object-cover object-top transition-all duration-300"
+                  style={{
+                    transformOrigin: isMagnifierActive && isHovering ? `${mousePos.x}% ${mousePos.y}%` : 'center center',
+                    transform: isMagnifierActive && isHovering ? 'scale(2.5)' : 'scale(1)',
+                    transition: isHovering ? 'transform 0.05s ease-out' : 'transform 0.3s ease-out'
+                  }}
+                  className="w-full h-full object-cover object-top will-change-transform pointer-events-none"
                 />
 
                 {/* Carousel Arrows */}
                 {product.images.length > 1 && (
                   <>
                     <button
-                      onClick={() => setSelectedImageIdx(prev => (prev === 0 ? product.images.length - 1 : prev - 1))}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/80 hover:bg-white text-[#222] shadow-md backdrop-blur-sm transition z-20"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedImageIdx(prev => (prev === 0 ? product.images.length - 1 : prev - 1));
+                      }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/90 hover:bg-white text-[#222] shadow-md backdrop-blur-sm transition z-20 hover:scale-105"
                       aria-label="Previous image"
                     >
-                      <ChevronRight className="w-5 h-5 rotate-180" />
+                      <ChevronLeft className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => setSelectedImageIdx(prev => (prev === product.images.length - 1 ? 0 : prev + 1))}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/80 hover:bg-white text-[#222] shadow-md backdrop-blur-sm transition z-20"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedImageIdx(prev => (prev === product.images.length - 1 ? 0 : prev + 1));
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/90 hover:bg-white text-[#222] shadow-md backdrop-blur-sm transition z-20 hover:scale-105"
                       aria-label="Next image"
                     >
                       <ChevronRight className="w-5 h-5" />
@@ -137,14 +177,45 @@ export const ProductDetailView: React.FC = () => {
                   </>
                 )}
 
-                <button
-                  onClick={() => setIsZoomOpen(true)}
-                  className="absolute bottom-4 right-4 p-3 bg-white/90 hover:bg-white text-[#222] rounded-full shadow-lg backdrop-blur-sm transition flex items-center gap-1.5 text-xs font-semibold z-10"
-                >
-                  <ZoomIn className="w-4 h-4 text-[#9E8055]" /> Zoom Image
-                </button>
+                {/* Magnifier / Zoom Action Controls */}
+                <div className="absolute bottom-4 right-4 flex items-center gap-2 z-20">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMagnifierActive(prev => !prev);
+                    }}
+                    className={`px-3 py-2 rounded-full text-[11px] font-semibold tracking-wider uppercase transition shadow-md backdrop-blur-sm flex items-center gap-1.5 ${
+                      isMagnifierActive 
+                        ? 'bg-[#222222] text-white' 
+                        : 'bg-white/90 text-[#222222] hover:bg-white'
+                    }`}
+                    title="Toggle cursor magnifier"
+                  >
+                    <ZoomIn className="w-3.5 h-3.5 text-[#D4AF37]" />
+                    <span>Magnifier {isMagnifierActive ? 'ON' : 'OFF'}</span>
+                  </button>
 
-                <div className="absolute top-4 left-4 flex flex-col gap-1.5 z-10">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsZoomOpen(true);
+                    }}
+                    className="p-2.5 bg-white/90 hover:bg-white text-[#222] rounded-full shadow-lg backdrop-blur-sm transition hover:scale-105"
+                    title="Open Fullscreen HD Zoom"
+                  >
+                    <Maximize2 className="w-4 h-4 text-[#222]" />
+                  </button>
+                </div>
+
+                {/* Interactive Tooltip Helper */}
+                {isMagnifierActive && isHovering && (
+                  <div className="absolute bottom-4 left-4 pointer-events-none bg-black/75 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-[10px] font-medium flex items-center gap-1.5 z-20 animate-in fade-in">
+                    <Sparkles className="w-3 h-3 text-[#D4AF37]" />
+                    <span>2.5x Fabric Magnifier • Move cursor to inspect details</span>
+                  </div>
+                )}
+
+                <div className="absolute top-4 left-4 flex flex-col gap-1.5 z-10 pointer-events-none">
                   {product.isSale && discountPercent && (
                     <span className="px-3 py-1 bg-[#8B5E34] text-white text-xs font-bold uppercase tracking-wider rounded shadow-sm">
                       {discountPercent}% OFF
@@ -524,20 +595,153 @@ export const ProductDetailView: React.FC = () => {
 
       <Footer />
 
-      {/* Full Image Zoom Modal */}
+      {/* Full Image Zoom & Magnifier Lightbox Modal */}
       {isZoomOpen && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <button
-            onClick={() => setIsZoomOpen(false)}
-            className="absolute top-6 right-6 text-white p-3 bg-white/20 hover:bg-white/40 rounded-full"
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 animate-in fade-in select-none"
+          onClick={() => setIsZoomOpen(false)}
+        >
+          {/* Top Bar Controls */}
+          <div 
+            className="flex items-center justify-between z-30 pb-3 border-b border-white/10"
+            onClick={(e) => e.stopPropagation()}
           >
-            ✕
-          </button>
-          <img
-            src={product.images[selectedImageIdx] || product.images[0]}
-            alt={product.name}
-            className="max-w-full max-h-[90vh] object-contain rounded"
-          />
+            <div className="text-white">
+              <h3 className="text-sm sm:text-base font-serif font-bold truncate max-w-xs sm:max-w-md text-[#EAE4DC]">
+                {product.name}
+              </h3>
+              <p className="text-[11px] text-gray-400 font-mono">
+                {product.sku} • {product.category} • {product.department}
+              </p>
+            </div>
+
+            {/* Zoom Controls Pill */}
+            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full">
+              <button
+                onClick={() => setModalZoom(prev => Math.max(1, +(prev - 0.5).toFixed(1)))}
+                disabled={modalZoom <= 1}
+                className="p-1.5 text-white hover:text-[#D4AF37] disabled:opacity-30 disabled:hover:text-white transition"
+                title="Zoom Out"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
+
+              <span className="text-xs font-mono font-bold text-white px-2">
+                {Math.round(modalZoom * 100)}%
+              </span>
+
+              <button
+                onClick={() => setModalZoom(prev => Math.min(3.5, +(prev + 0.5).toFixed(1)))}
+                disabled={modalZoom >= 3.5}
+                className="p-1.5 text-white hover:text-[#D4AF37] disabled:opacity-30 disabled:hover:text-white transition"
+                title="Zoom In"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+
+              <div className="h-4 w-px bg-white/20 mx-1" />
+
+              <button
+                onClick={() => {
+                  setModalZoom(1);
+                  setModalPan({ x: 50, y: 50 });
+                }}
+                className="p-1.5 text-white hover:text-[#D4AF37] transition"
+                title="Reset Zoom (100%)"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setIsZoomOpen(false)}
+              className="text-white p-2 sm:p-2.5 bg-white/10 hover:bg-white/30 rounded-full transition hover:scale-105"
+              aria-label="Close fullscreen zoom"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Center Image Stage with Interactive Panning & Navigation */}
+          <div 
+            className="relative flex-1 flex items-center justify-center overflow-hidden my-auto cursor-grab active:cursor-grabbing"
+            onClick={(e) => {
+              e.stopPropagation();
+              setModalZoom(prev => (prev >= 2.5 ? 1 : prev + 0.75));
+            }}
+            onMouseMove={handleModalMouseMove}
+          >
+            {/* Previous Image Button */}
+            {product.images.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedImageIdx(prev => (prev === 0 ? product.images.length - 1 : prev - 1));
+                }}
+                className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 backdrop-blur-sm transition z-30 hover:scale-110"
+                aria-label="Previous image"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+
+            {/* Zoomed Image */}
+            <img
+              src={product.images[selectedImageIdx] || product.images[0]}
+              alt={product.name}
+              style={{
+                transformOrigin: modalZoom > 1 ? `${modalPan.x}% ${modalPan.y}%` : 'center center',
+                transform: `scale(${modalZoom})`,
+                transition: 'transform 0.1s ease-out'
+              }}
+              className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl pointer-events-none select-none transition-transform"
+            />
+
+            {/* Next Image Button */}
+            {product.images.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedImageIdx(prev => (prev === product.images.length - 1 ? 0 : prev + 1));
+                }}
+                className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 backdrop-blur-sm transition z-30 hover:scale-110"
+                aria-label="Next image"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
+          </div>
+
+          {/* Bottom Thumbnail Strip & Instructions */}
+          <div 
+            className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/10 z-30"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-[11px] text-gray-400 flex items-center gap-1.5">
+              <Move className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span>Click image to zoom • Hover/drag to inspect fabric threads & laces</span>
+            </p>
+
+            {/* Thumbnails */}
+            {product.images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto max-w-full pb-1">
+                {product.images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedImageIdx(idx)}
+                    className={`w-12 h-14 sm:w-14 sm:h-16 rounded-md overflow-hidden border-2 transition shrink-0 ${
+                      selectedImageIdx === idx 
+                        ? 'border-[#D4AF37] ring-2 ring-[#D4AF37]/50 scale-105' 
+                        : 'border-white/20 opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
@@ -17,18 +18,87 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const distPath = path.join(__dirname, 'dist');
 
-// Body parser for JSON payloads
-app.use(express.json({ limit: '10mb' }));
+// Body parser for JSON payloads (supports high-res image uploads to be saved to website storage)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// ==============================================================================
+// WEBSITE FILE & IMAGE STORAGE ENGINE (/public/uploads)
+// Images are stored on the website filesystem; MongoDB Atlas only stores links.
+// ==============================================================================
+const publicUploadsDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(publicUploadsDir)) {
+  try {
+    fs.mkdirSync(publicUploadsDir, { recursive: true });
+  } catch (e) {
+    console.warn('[STORAGE DIR CREATION NOTE]', e.message);
+  }
+}
+
+// Serve public uploads and assets statically
+app.use('/uploads', express.static(publicUploadsDir));
+app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
+
+/**
+ * Saves a base64 image data URL into website local file storage (/public/uploads)
+ * and returns the clean website link URL (/uploads/filename.ext)
+ */
+function saveBase64Image(dataUrlOrUrl, prefix = 'prod') {
+  if (!dataUrlOrUrl || typeof dataUrlOrUrl !== 'string') return dataUrlOrUrl;
+
+  // If it's already a regular URL or file path, return it directly
+  if (!dataUrlOrUrl.startsWith('data:image/')) {
+    return dataUrlOrUrl;
+  }
+
+  try {
+    const matches = dataUrlOrUrl.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
+    if (!matches) return dataUrlOrUrl;
+
+    let ext = matches[1].toLowerCase();
+    if (ext === 'jpeg') ext = 'jpg';
+    if (ext === 'svg+xml') ext = 'svg';
+
+    const base64Data = matches[2];
+    const buffer = Buffer.from(base64Data, 'base64');
+    const randomSuffix = Math.random().toString(36).substring(2, 9);
+    const filename = `${prefix}_${Date.now()}_${randomSuffix}.${ext}`;
+    const targetFilePath = path.join(publicUploadsDir, filename);
+
+    fs.writeFileSync(targetFilePath, buffer);
+    console.log(`[FILE STORAGE] Saved image to website disk: /uploads/${filename} (${(buffer.length / 1024).toFixed(1)} KB)`);
+    return `/uploads/${filename}`;
+  } catch (err) {
+    console.warn('[FILE STORAGE ERROR] Could not save image to disk:', err.message);
+    return dataUrlOrUrl;
+  }
+}
+
+/**
+ * Sanitizes product objects so that all images are stored on website file storage
+ * and MongoDB Atlas receives only link URLs.
+ */
+function sanitizeProductImageLinks(product) {
+  if (!product) return product;
+  const clean = { ...product };
+  if (Array.isArray(clean.images)) {
+    clean.images = clean.images.map((img, idx) => saveBase64Image(img, `prod_${idx}`));
+  }
+  return clean;
+}
 
 // In-memory store for recent email logs (useful for admin verification)
 const recentEmailLogs = [];
 
 // ==============================================================================
-// MONGODB ATLAS DATABASE ENGINE
+// MONGODB ATLAS DATABASE ENGINE (Resilient Connection & Auto-Fallback)
 // ==============================================================================
 let mongoClient = null;
 let mongoDb = null;
 let isMongoConnecting = false;
+let lastMongoError = null;
+let lastMongoAttemptTime = 0;
+const MONGO_RETRY_COOLDOWN_MS = 25000; // 25s cooldown before retrying failed Atlas connection
 
 function getMongoUri() {
   return process.env.MONGODB_URI || 
@@ -42,7 +112,21 @@ function getMongoDbName() {
   return process.env.MONGODB_DB_NAME || 'sasaofficial';
 }
 
-async function getMongoDatabase(customUri = null, customDbName = null) {
+function formatMongoError(err) {
+  const msg = err?.message || String(err);
+  if (msg.includes('SSL alert number 80') || msg.includes('tlsv1 alert internal error')) {
+    return 'MongoDB Atlas Network Access Firewall Block: The cluster rejected the connection (SSL alert 80). Please add "0.0.0.0/0" in your MongoDB Atlas Dashboard > Network Access > Add IP Address.';
+  }
+  if (msg.includes('bad auth') || msg.includes('Authentication failed')) {
+    return 'MongoDB Atlas Authentication Failed: Check the database username and password in MONGODB_URI.';
+  }
+  if (msg.includes('querySrv ENOTFOUND') || msg.includes('getaddrinfo ENOTFOUND')) {
+    return 'MongoDB Atlas Host Not Found: Verify your cluster hostname or SRV connection string.';
+  }
+  return msg;
+}
+
+async function getMongoDatabase(customUri = null, customDbName = null, forceRetry = false) {
   const uri = customUri || getMongoUri();
   const dbName = customDbName || getMongoDbName();
 
@@ -50,57 +134,73 @@ async function getMongoDatabase(customUri = null, customDbName = null) {
     return null;
   }
 
+  // Return existing healthy connection
   if (mongoDb && !customUri) {
     return mongoDb;
   }
 
+  // Prevent connection stampede or rapid looping when Atlas IP is blocking
+  const now = Date.now();
+  if (!customUri && !forceRetry && lastMongoError && (now - lastMongoAttemptTime < MONGO_RETRY_COOLDOWN_MS)) {
+    return null;
+  }
+
   if (isMongoConnecting && !customUri) {
-    // Wait a brief moment if already connecting
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 400));
     if (mongoDb) return mongoDb;
+    return null;
   }
 
   try {
     isMongoConnecting = true;
+    lastMongoAttemptTime = now;
+
     const client = new MongoClient(uri, {
-      serverApi: {
-        version: ServerApiVersion.v1,
-        strict: false,
-        deprecationErrors: true,
-      },
-      connectTimeoutMS: 6000,
-      serverSelectionTimeoutMS: 6000,
-      socketTimeoutMS: 10000,
+      connectTimeoutMS: 3500,
+      serverSelectionTimeoutMS: 3500,
+      socketTimeoutMS: 6000,
+      tls: true,
+      tlsAllowInvalidCertificates: true,
+      directConnection: false,
     });
 
     await client.connect();
-    // Verify connection by pinging
     const database = client.db(dbName);
     await database.command({ ping: 1 });
 
     if (!customUri) {
       mongoClient = client;
       mongoDb = database;
-      console.log(`[MONGODB ATLAS] Connected to cluster successfully. Active database: "${dbName}"`);
+      lastMongoError = null;
+      console.log(`[MONGODB ATLAS] Connected successfully. Active database: "${dbName}"`);
     }
 
     return database;
   } catch (err) {
-    console.error(`[MONGODB ATLAS ERROR] Connection attempt failed: ${err.message}`);
+    const readableError = formatMongoError(err);
     if (!customUri) {
+      lastMongoError = readableError;
       mongoDb = null;
+      console.warn(`[MONGODB ATLAS NOTICE] Cluster connection paused: ${readableError}`);
     }
-    throw err;
+    if (customUri) {
+      throw new Error(readableError);
+    }
+    return null;
   } finally {
     isMongoConnecting = false;
   }
 }
 
-// Initial background attempt to connect to MongoDB Atlas if URI is provided
+// Initial non-blocking check on server startup
 if (getMongoUri()) {
-  getMongoDatabase()
-    .then(() => console.log('[MONGODB ATLAS] Initial connection verified.'))
-    .catch(err => console.warn('[MONGODB ATLAS] Initial connection note (Check IP whitelist / credentials):', err.message));
+  getMongoDatabase(null, null, true)
+    .then(db => {
+      if (db) {
+        console.log('[MONGODB ATLAS] Initial connection verified.');
+      }
+    })
+    .catch(() => {});
 }
 
 // Helper to create Nodemailer transporter from Hostinger / SMTP environment variables
@@ -653,15 +753,31 @@ app.get('/api/db/status', async (req, res) => {
         message: `Successfully connected to MongoDB Atlas database "${dbName}"`
       });
     }
+
+    // When connection is in cooldown or IP firewall blocked
+    if (hasUri) {
+      return res.json({
+        connected: false,
+        type: 'MongoDB Atlas (Configuration Required)',
+        databaseName: dbName,
+        uriConfigured: true,
+        maskedUri,
+        error: lastMongoError || 'Connection paused',
+        isSslAlert80: Boolean(lastMongoError && (lastMongoError.includes('SSL alert 80') || lastMongoError.includes('Firewall'))),
+        message: lastMongoError || 'MongoDB Atlas connection paused. Ensure 0.0.0.0/0 is whitelisted in MongoDB Atlas Network Access.'
+      });
+    }
   } catch (err) {
+    const formatted = formatMongoError(err);
     return res.json({
       connected: false,
       type: 'MongoDB Atlas',
       databaseName: dbName,
       uriConfigured: hasUri,
       maskedUri,
-      error: err.message,
-      message: `MongoDB Atlas connection error: ${err.message}. Please verify Network Access (0.0.0.0/0) and credentials.`
+      error: formatted,
+      isSslAlert80: formatted.includes('SSL alert 80') || formatted.includes('Firewall'),
+      message: formatted
     });
   }
 
@@ -690,7 +806,10 @@ app.post('/api/db/test-connection', async (req, res) => {
   }
 
   try {
-    const db = await getMongoDatabase(testUri, dbName);
+    const db = await getMongoDatabase(testUri, dbName, true);
+    if (!db) {
+      throw new Error(lastMongoError || 'Unable to connect to database cluster');
+    }
     const collections = await db.listCollections().toArray();
     const collectionNames = collections.map(c => c.name);
 
@@ -701,13 +820,140 @@ app.post('/api/db/test-connection', async (req, res) => {
       collections: collectionNames
     });
   } catch (err) {
-    console.error('[MONGODB ATLAS TEST FAILED]', err);
+    const formatted = formatMongoError(err);
+    return res.json({
+      success: false,
+      error: formatted,
+      isSslAlert80: formatted.includes('SSL alert 80') || formatted.includes('Firewall'),
+      message: formatted
+    });
+  }
+});
+
+// ==============================================================================
+// 6. WEBSITE IMAGE / FILE STORAGE & MONGODB PRODUCT CRUD
+// Images are saved on Website disk (/public/uploads); MongoDB stores the link URLs.
+// ==============================================================================
+
+// POST /api/upload: Upload single image to website file storage
+app.post('/api/upload', (req, res) => {
+  const { image, filename: originalName, prefix = 'product' } = req.body || {};
+  if (!image) {
+    return res.status(400).json({ success: false, message: 'No image data provided' });
+  }
+
+  try {
+    const linkUrl = saveBase64Image(image, prefix);
+    return res.json({
+      success: true,
+      url: linkUrl,
+      storageType: 'website_file_storage',
+      message: 'Image successfully saved to website file storage (/uploads). Link ready for MongoDB.'
+    });
+  } catch (err) {
     return res.status(500).json({
       success: false,
       error: err.message,
-      message: `Failed to connect to MongoDB Atlas: ${err.message}. Check IP Whitelist (0.0.0.0/0) and user permissions in MongoDB Atlas.`
+      message: 'Failed to save image to website storage'
     });
   }
+});
+
+// POST /api/upload/multiple: Upload multiple images to website file storage
+app.post('/api/upload/multiple', (req, res) => {
+  const { images = [], prefix = 'product' } = req.body || {};
+  if (!Array.isArray(images) || images.length === 0) {
+    return res.status(400).json({ success: false, message: 'No images provided' });
+  }
+
+  try {
+    const urls = images.map((img, idx) => saveBase64Image(img, `${prefix}_${idx}`));
+    return res.json({
+      success: true,
+      urls,
+      count: urls.length,
+      storageType: 'website_file_storage',
+      message: `${urls.length} images saved to website storage. Link URLs ready for MongoDB.`
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: err.message,
+      message: 'Failed to save images to website storage'
+    });
+  }
+});
+
+// GET /api/products: Fetch products from MongoDB Atlas or return local fallback
+app.get('/api/products', async (req, res) => {
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const products = await db.collection('products').find({}).toArray();
+      return res.json({
+        success: true,
+        source: 'mongodb_atlas',
+        count: products.length,
+        products
+      });
+    }
+  } catch (err) {
+    console.warn('[MONGODB PRODUCTS FETCH ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local', products: [] });
+});
+
+// POST /api/products: Save or update product in MongoDB Atlas with clean image links
+app.post('/api/products', async (req, res) => {
+  const { product } = req.body || {};
+  if (!product || !product.id) {
+    return res.status(400).json({ success: false, message: 'Missing product object or product ID' });
+  }
+
+  // Ensure all images are stored on website file storage, returning clean URL links for MongoDB
+  const cleanProduct = sanitizeProductImageLinks(product);
+  cleanProduct.updatedAt = new Date();
+
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      await db.collection('products').updateOne(
+        { id: cleanProduct.id },
+        { $set: cleanProduct },
+        { upsert: true }
+      );
+      return res.json({
+        success: true,
+        source: 'mongodb_atlas',
+        product: cleanProduct,
+        message: 'Product information & image links saved to MongoDB Atlas'
+      });
+    }
+  } catch (err) {
+    console.warn('[MONGODB PRODUCT SAVE ERROR]', err.message);
+  }
+
+  return res.json({
+    success: true,
+    source: 'local_fallback',
+    product: cleanProduct,
+    message: 'Images saved to website storage; product cached locally'
+  });
+});
+
+// DELETE /api/products/:id: Delete product from MongoDB Atlas
+app.delete('/api/products/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      await db.collection('products').deleteOne({ id });
+      return res.json({ success: true, source: 'mongodb_atlas', id });
+    }
+  } catch (err) {
+    console.warn('[MONGODB PRODUCT DELETE ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local_fallback', id });
 });
 
 // GET /api/orders: Fetch orders from MongoDB Atlas or return empty array
@@ -749,9 +995,9 @@ app.post('/api/orders', async (req, res) => {
   return res.json({ success: true, source: 'local_fallback', id: order.id });
 });
 
-// POST /api/db/sync: Seed or sync products and orders to MongoDB Atlas
+// POST /api/db/sync: Seed or sync products, orders, and settings to MongoDB Atlas
 app.post('/api/db/sync', async (req, res) => {
-  const { products, orders, settings } = req.body || {};
+  const { products, orders, settings, banners } = req.body || {};
   try {
     const db = await getMongoDatabase();
     if (!db) {
@@ -764,9 +1010,11 @@ app.post('/api/db/sync', async (req, res) => {
     let productsCount = 0;
     let ordersCount = 0;
 
+    // Process all products: save raw base64 images into website file storage (/uploads), save links in MongoDB
     if (Array.isArray(products) && products.length > 0) {
       for (const p of products) {
-        await db.collection('products').updateOne({ id: p.id }, { $set: p }, { upsert: true });
+        const cleanProduct = sanitizeProductImageLinks(p);
+        await db.collection('products').updateOne({ id: cleanProduct.id }, { $set: cleanProduct }, { upsert: true });
       }
       productsCount = products.length;
     }
@@ -778,15 +1026,23 @@ app.post('/api/db/sync', async (req, res) => {
       ordersCount = orders.length;
     }
 
+    if (Array.isArray(banners) && banners.length > 0) {
+      for (const b of banners) {
+        const cleanBanner = { ...b, imageUrl: saveBase64Image(b.imageUrl, 'banner') };
+        await db.collection('banners').updateOne({ id: cleanBanner.id }, { $set: cleanBanner }, { upsert: true });
+      }
+    }
+
     if (settings) {
       await db.collection('settings').updateOne({ key: 'store_settings' }, { $set: settings }, { upsert: true });
     }
 
     return res.json({
       success: true,
-      message: `Successfully synced ${productsCount} products and ${ordersCount} orders to MongoDB Atlas!`,
+      message: `Successfully synced ${productsCount} products and ${ordersCount} orders to MongoDB Atlas! (Images stored in Website File Storage, Links stored in MongoDB Atlas)`,
       productsCount,
-      ordersCount
+      ordersCount,
+      storageArchitecture: 'Images → Website File Storage (/uploads) | Product Data & Links → MongoDB Atlas'
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });

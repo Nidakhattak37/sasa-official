@@ -180,11 +180,11 @@ export const AdminCategories: React.FC = () => {
     setSlug('');
     setDepartment('Apparel & Clothing');
     setDescription('');
-    setImage('https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800');
+    setImage('');
     setSeason('Summer Collection');
     setPieceType('3 Piece');
     setStitchingStatus('Unstitched');
-    setSubcategories(['Embroidered Lawn', 'Printed Lawn', 'Chikankari']);
+    setSubcategories([]);
     setSubcatInput('');
     setCustomPieceType('');
     setCustomDepartment('');

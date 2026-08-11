@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { uploadImageFile } from '../../utils/imageStorage';
 import {
-  Plus, Trash2, Image as ImageIcon, X, Upload, Save, CheckCircle, Sparkles, LayoutGrid, Layers
+  Plus, Trash2, Image as ImageIcon, X, Upload, Save, CheckCircle, Sparkles, LayoutGrid, Layers, HardDrive, Database
 } from 'lucide-react';
 import { InstantClassicsSection, DualEditorialSection } from '../../types';
 
@@ -37,48 +38,32 @@ export const AdminBanners: React.FC = () => {
     setTimeout(() => setSaveSuccessMsg(null), 3500);
   };
 
-  const handleHeroFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHeroFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      const result = uploadEvent.target?.result as string;
-      if (result) setImageUrl(result);
-    };
-    reader.readAsDataURL(file);
+    const linkUrl = await uploadImageFile(file, 'banner_hero');
+    if (linkUrl) setImageUrl(linkUrl);
   };
 
-  const handleInstantFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInstantFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      const result = uploadEvent.target?.result as string;
-      if (result) setIcData(prev => ({ ...prev, imageUrl: result }));
-    };
-    reader.readAsDataURL(file);
+    const linkUrl = await uploadImageFile(file, 'banner_instant');
+    if (linkUrl) setIcData(prev => ({ ...prev, imageUrl: linkUrl }));
   };
 
-  const handleDualLeftFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDualLeftFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      const result = uploadEvent.target?.result as string;
-      if (result) setDeData(prev => ({ ...prev, left: { ...prev.left, imageUrl: result } }));
-    };
-    reader.readAsDataURL(file);
+    const linkUrl = await uploadImageFile(file, 'banner_dual_left');
+    if (linkUrl) setDeData(prev => ({ ...prev, left: { ...prev.left, imageUrl: linkUrl } }));
   };
 
-  const handleDualRightFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDualRightFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      const result = uploadEvent.target?.result as string;
-      if (result) setDeData(prev => ({ ...prev, right: { ...prev.right, imageUrl: result } }));
-    };
-    reader.readAsDataURL(file);
+    const linkUrl = await uploadImageFile(file, 'banner_dual_right');
+    if (linkUrl) setDeData(prev => ({ ...prev, right: { ...prev.right, imageUrl: linkUrl } }));
   };
 
   const handleCreateHero = (e: React.FormEvent) => {

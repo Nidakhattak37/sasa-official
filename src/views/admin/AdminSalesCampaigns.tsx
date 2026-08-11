@@ -43,10 +43,10 @@ export const AdminSalesCampaigns: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingCampaign(null);
-    setName('2024 Archive Collection Clearance');
+    setName('');
     setTargetType('year');
     setTargetValue('2024');
-    setDiscountPercentage(30);
+    setDiscountPercentage(20);
     setIsActive(true);
     setIsModalOpen(true);
   };

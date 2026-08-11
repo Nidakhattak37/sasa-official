@@ -10,8 +10,8 @@ import { Search, Truck, CheckCircle2, Clock, PackageCheck, MapPin, AlertCircle }
 export const TrackOrderView: React.FC = () => {
   const { orders, trackSearch, setTrackSearch, currency, setCurrentView } = useApp();
 
-  const [orderIdInput, setOrderIdInput] = useState(trackSearch.orderId || 'SASA-9842');
-  const [contactInput, setContactInput] = useState(trackSearch.contact || 'ayesha.khan@gmail.com');
+  const [orderIdInput, setOrderIdInput] = useState(trackSearch.orderId || '');
+  const [contactInput, setContactInput] = useState(trackSearch.contact || '');
   const [searchedOrder, setSearchedOrder] = useState<any | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 

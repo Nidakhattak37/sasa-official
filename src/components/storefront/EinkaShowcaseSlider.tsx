@@ -1,12 +1,13 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
-import { ChevronLeft, ChevronRight, Heart, Eye, ShoppingBag, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Eye, ShoppingBag, Check, Sparkles } from 'lucide-react';
 import { Product } from '../../types';
 import { formatPrice } from '../../utils/currency';
+import { INITIAL_PRODUCTS } from '../../data/mockData';
 import { QuickViewModal } from './QuickViewModal';
 import { SizeGuideModal } from './SizeGuideModal';
 
-// Helper to convert string to Title Case (Capitalize Every First Letter)
+// Helper to convert string to Title Case
 const toTitleCase = (str: string) => {
   if (!str) return '';
   return str
@@ -17,7 +18,17 @@ const toTitleCase = (str: string) => {
 };
 
 export const EinkaShowcaseSlider: React.FC = () => {
-  const { products, setSelectedProductId, setCurrentView, toggleWishlist, isInWishlist, currency, addToCart, setIsCartDrawerOpen } = useApp();
+  const { 
+    products, 
+    setSelectedProductId, 
+    setCurrentView, 
+    toggleWishlist, 
+    isInWishlist, 
+    currency, 
+    addToCart, 
+    setIsCartDrawerOpen 
+  } = useApp();
+
   const sliderRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
@@ -25,122 +36,160 @@ export const EinkaShowcaseSlider: React.FC = () => {
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
 
-  // 1. MECHANISM: Exactly 12 dresses. Best Sellers slide first. If < 12 best sellers, fill with other dresses.
-  const showcase12Dresses = useMemo(() => {
-    if (!products || products.length === 0) return [];
+  // Mouse drag-to-scroll state
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeftStart, setScrollLeftStart] = useState(0);
+  const [dragDistance, setDragDistance] = useState(0);
 
-    const bestSellers = products.filter(p => Boolean(p.isBestSeller));
-    const nonBestSellers = products.filter(p => !p.isBestSeller);
+  // Pause timer for auto-slide when user interacts manually
+  const pauseUntilRef = useRef<number>(0);
 
-    let selected: Product[] = [];
+  // 1. Curate Festive Collection (Fallback to INITIAL_PRODUCTS if empty)
+  const showcaseDresses = useMemo(() => {
+    const sourceProducts = (products && products.length > 0) ? products : INITIAL_PRODUCTS;
+    if (!sourceProducts || sourceProducts.length === 0) return [];
 
-    if (bestSellers.length >= 12) {
-      // If 12 or more best sellers, take the first 12 best sellers
-      selected = bestSellers.slice(0, 12);
-    } else {
-      // Showcase all best sellers first, then fill remainder from other products
-      selected = [...bestSellers];
-      const needed = 12 - selected.length;
-      selected.push(...nonBestSellers.slice(0, needed));
+    // Filter festive / eid / luxury pret items
+    const festiveList = sourceProducts.filter(p => 
+      (p.collectionType && p.collectionType.toLowerCase().includes('festive')) ||
+      (p.collection && p.collection.toLowerCase().includes('festive')) ||
+      (p.category && p.category.toLowerCase().includes('festive')) ||
+      (p.season && p.season.toLowerCase().includes('festive')) ||
+      (p.tags && p.tags.some(t => t.toLowerCase().includes('festive'))) ||
+      Boolean(p.isBestSeller)
+    );
 
-      // In case the entire store has fewer than 12 unique items, cycle through catalog
-      if (selected.length < 12 && products.length > 0) {
-        let idx = 0;
-        while (selected.length < 12) {
-          selected.push(products[idx % products.length]);
-          idx++;
-        }
+    const nonFestive = sourceProducts.filter(p => !festiveList.some(fp => fp.id === p.id));
+    const combined = [...festiveList, ...nonFestive];
+
+    // Ensure we have at least 8-12 dresses for a rich looping showcase
+    let selected: Product[] = [...combined];
+    if (selected.length < 8 && sourceProducts.length > 0) {
+      let idx = 0;
+      while (selected.length < 8) {
+        selected.push(sourceProducts[idx % sourceProducts.length]);
+        idx++;
       }
     }
 
     return selected.slice(0, 12);
   }, [products]);
 
-  // 2. INFINITE REPEATING MECHANISM:
-  // Render 3 identical sets of the 12 dresses so the track seamlessly wraps forever
-  const repeatedSets = [0, 1, 2];
+  // 2. Render 3 identical sets of dresses so track seamlessly loops indefinitely
+  const repeatedSets = useMemo(() => [0, 1, 2], []);
 
-  // Initialize scroll position to the middle set so users can scroll left and right smoothly
+  // Initialize scroll position to the middle set on load or resize
   useEffect(() => {
     const timer = setTimeout(() => {
       if (sliderRef.current) {
-        const singleSetWidth = sliderRef.current.scrollWidth / 3;
+        const el = sliderRef.current;
+        const singleSetWidth = el.scrollWidth / 3;
         if (singleSetWidth > 0) {
-          sliderRef.current.scrollLeft = singleSetWidth;
+          el.scrollLeft = singleSetWidth;
         }
       }
-    }, 60);
+    }, 100);
 
     return () => clearTimeout(timer);
-  }, [showcase12Dresses]);
+  }, [showcaseDresses]);
 
-  // Continuous auto-sliding with boundary wrap-around
+  // Continuous subtle auto-glide with seamless loop
   useEffect(() => {
     let animationId: number;
-    let lastTimestamp = performance.now();
+    let lastTime = performance.now();
 
-    const animate = (currentTimestamp: number) => {
-      const delta = currentTimestamp - lastTimestamp;
-      lastTimestamp = currentTimestamp;
+    const step = (now: number) => {
+      const delta = now - lastTime;
+      lastTime = now;
 
-      if (!isHovered && sliderRef.current) {
+      const isPaused = isHovered || isMouseDown || now < pauseUntilRef.current;
+
+      if (!isPaused && sliderRef.current) {
         const el = sliderRef.current;
         const singleSetWidth = el.scrollWidth / 3;
 
         if (singleSetWidth > 0) {
-          // Slow, serene, luxury showcase glide speed (~16 pixels per second)
-          const stepPx = (16 * delta) / 1000;
-          el.scrollLeft += stepPx;
+          // Serene, luxury showcase glide (~18px per second)
+          const px = (18 * delta) / 1000;
+          el.scrollLeft += px;
 
-          // Seamless wrap: when entering the 3rd set, reset back to middle set
+          // Infinite boundary wrap
           if (el.scrollLeft >= 2 * singleSetWidth) {
             el.scrollLeft -= singleSetWidth;
           }
         }
       }
 
-      animationId = requestAnimationFrame(animate);
+      animationId = requestAnimationFrame(step);
     };
 
-    animationId = requestAnimationFrame(animate);
+    animationId = requestAnimationFrame(step);
     return () => cancelAnimationFrame(animationId);
-  }, [isHovered, showcase12Dresses]);
+  }, [isHovered, isMouseDown, showcaseDresses]);
 
-  // Normalization on manual scrolling / swipe
-  const handleScroll = () => {
+  // Infinite wrap-around check on scroll
+  const handleScroll = useCallback(() => {
     if (!sliderRef.current) return;
     const el = sliderRef.current;
     const singleSetWidth = el.scrollWidth / 3;
     if (singleSetWidth <= 0) return;
 
-    if (el.scrollLeft >= 2 * singleSetWidth) {
+    if (el.scrollLeft >= 2 * singleSetWidth + 100) {
       el.scrollLeft -= singleSetWidth;
-    } else if (el.scrollLeft <= 10) {
+    } else if (el.scrollLeft <= 50) {
       el.scrollLeft += singleSetWidth;
+    }
+  }, []);
+
+  // Left & Right Arrow Navigation
+  const scroll = (direction: 'left' | 'right') => {
+    if (!sliderRef.current) return;
+    // Pause auto-sliding for 3.5 seconds after manual button click
+    pauseUntilRef.current = performance.now() + 3500;
+
+    const el = sliderRef.current;
+    const singleSetWidth = el.scrollWidth / 3;
+    const cardWidth = Math.min(el.clientWidth * 0.8, 360);
+
+    if (direction === 'left') {
+      if (el.scrollLeft - cardWidth < 50) {
+        el.scrollLeft += singleSetWidth;
+      }
+      el.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+    } else {
+      if (el.scrollLeft + cardWidth >= 2 * singleSetWidth) {
+        el.scrollLeft -= singleSetWidth;
+      }
+      el.scrollBy({ left: cardWidth, behavior: 'smooth' });
     }
   };
 
-  // Left & Right Arrow Navigation with infinite wrap-around
-  const scroll = (direction: 'left' | 'right') => {
+  // Mouse Drag-to-Scroll handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
     if (!sliderRef.current) return;
-    const el = sliderRef.current;
-    const singleSetWidth = el.scrollWidth / 3;
-    const scrollAmount = Math.min(el.clientWidth * 0.75, 420);
+    setIsMouseDown(true);
+    setStartX(e.pageX - sliderRef.current.offsetLeft);
+    setScrollLeftStart(sliderRef.current.scrollLeft);
+    setDragDistance(0);
+  };
 
-    if (direction === 'left') {
-      if (el.scrollLeft - scrollAmount < 20) {
-        el.scrollLeft += singleSetWidth;
-      }
-      el.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-    } else {
-      if (el.scrollLeft + scrollAmount >= 2 * singleSetWidth) {
-        el.scrollLeft -= singleSetWidth;
-      }
-      el.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isMouseDown || !sliderRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - sliderRef.current.offsetLeft;
+    const walk = (x - startX) * 1.3;
+    sliderRef.current.scrollLeft = scrollLeftStart - walk;
+    setDragDistance(Math.abs(walk));
+  };
+
+  const handleMouseUpOrLeave = () => {
+    setIsMouseDown(false);
   };
 
   const handleProductClick = (product: Product) => {
+    // If the user was dragging the slider, do not trigger navigation
+    if (dragDistance > 6) return;
     setSelectedProductId(product.id);
     setCurrentView('product-detail');
   };
@@ -162,55 +211,67 @@ export const EinkaShowcaseSlider: React.FC = () => {
     setQuickViewProduct(product);
   };
 
-  if (showcase12Dresses.length === 0) return null;
+  if (showcaseDresses.length === 0) return null;
 
   return (
-    <section className="py-12 bg-white border-b border-[#EAE4DC] overflow-hidden select-none">
+    <section className="py-12 sm:py-16 bg-white border-b border-[#EAE4DC] overflow-hidden select-none">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="flex items-end justify-between mb-6">
+        <div className="flex items-end justify-between mb-8">
           <div>
-            <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.25em] text-[#9E8055]">
-              New Editorial Showcase
-            </span>
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-[0.25em] text-[#9E8055]">
+              <Sparkles className="w-3 h-3 text-[#D4AF37]" />
+              <span>New Editorial Showcase</span>
+            </div>
             <h2 className="font-serif text-2xl sm:text-4xl font-normal text-[#1E1E24] tracking-tight mt-1">
               The Festive Collection
             </h2>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1 max-w-md hidden sm:block">
+              Handcrafted zardozi, sequined tillawork, and luxury organza dupattas.
+            </p>
           </div>
 
           {/* Navigation Controls */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => scroll('left')}
-              className="p-2.5 rounded-full bg-white border border-[#EAE4DC] text-[#1E1E24] hover:bg-[#1E1E24] hover:text-white transition shadow-sm cursor-pointer"
-              aria-label="Previous dresses"
+              className="p-2.5 sm:p-3 rounded-full bg-white border border-[#EAE4DC] text-[#1E1E24] hover:bg-[#1E1E24] hover:text-white transition-all shadow-sm cursor-pointer active:scale-95"
+              aria-label="Previous Festive Dresses"
               title="Previous"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
             <button
               onClick={() => scroll('right')}
-              className="p-2.5 rounded-full bg-white border border-[#EAE4DC] text-[#1E1E24] hover:bg-[#1E1E24] hover:text-white transition shadow-sm cursor-pointer"
-              aria-label="Next dresses"
+              className="p-2.5 sm:p-3 rounded-full bg-white border border-[#EAE4DC] text-[#1E1E24] hover:bg-[#1E1E24] hover:text-white transition-all shadow-sm cursor-pointer active:scale-95"
+              aria-label="Next Festive Dresses"
               title="Next"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
 
-        {/* Light Fast Horizontal Slider (Continuous Repeating Looping) */}
+        {/* Horizontal Infinite Slider Track */}
         <div
           ref={sliderRef}
           onScroll={handleScroll}
           onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          className="flex gap-4 sm:gap-6 overflow-x-auto scrollbar-none pb-4"
+          onMouseLeave={() => {
+            setIsHovered(false);
+            handleMouseUpOrLeave();
+          }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          className={`flex gap-4 sm:gap-6 overflow-x-auto scrollbar-none pb-4 ${
+            isMouseDown ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {repeatedSets.map((setIndex) =>
-            showcase12Dresses.map((product, pIdx) => {
+            showcaseDresses.map((product, pIdx) => {
               const inWishlist = isInWishlist(product.id);
               const cardKey = `festive-set-${setIndex}-${product.id}-${pIdx}`;
               const isCardHovered = hoveredProduct === cardKey;
@@ -223,12 +284,12 @@ export const EinkaShowcaseSlider: React.FC = () => {
                   key={cardKey}
                   onMouseEnter={() => setHoveredProduct(cardKey)}
                   onMouseLeave={() => setHoveredProduct(null)}
-                  className="flex-none w-[260px] sm:w-[320px] md:w-[340px] group cursor-pointer"
+                  className="flex-none w-[260px] sm:w-[310px] md:w-[340px] group cursor-pointer"
                 >
                   {/* Image Container */}
                   <div 
                     onClick={() => handleProductClick(product)}
-                    className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-[#FBF9F5] shadow-sm border border-[#EAE4DC] mb-3"
+                    className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-[#FBF9F5] shadow-sm border border-[#EAE4DC] mb-3.5 transition-transform duration-300 group-hover:shadow-md"
                   >
                     {/* Top Badges */}
                     <div className="absolute top-3 left-3 z-20 flex flex-col gap-1.5 pointer-events-none">
@@ -247,6 +308,9 @@ export const EinkaShowcaseSlider: React.FC = () => {
                           NEW
                         </span>
                       )}
+                      <span className="px-2 py-0.5 bg-[#FAF8F5]/90 backdrop-blur-sm text-[#8B5E34] text-[9px] font-semibold tracking-wider uppercase rounded border border-[#EAE4DC]">
+                        Festive
+                      </span>
                     </div>
 
                     {/* Wishlist Icon */}
@@ -286,7 +350,7 @@ export const EinkaShowcaseSlider: React.FC = () => {
                     )}
 
                     {/* Quick View & Add to Cart Action Bar */}
-                    <div className="absolute inset-x-2 bottom-2 p-1.5 bg-gradient-to-t from-black/80 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1.5 z-20">
+                    <div className="absolute inset-x-2 bottom-2 p-1.5 bg-gradient-to-t from-black/80 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1.5 z-20 rounded-xl">
                       <button
                         onClick={(e) => handleQuickView(e, product)}
                         className="flex-1 py-2 px-2 bg-white text-[#1E1E24] hover:bg-[#8B5E34] hover:text-white font-bold text-[10px] uppercase tracking-wider rounded-lg transition shadow flex items-center justify-center gap-1 cursor-pointer"
@@ -319,18 +383,17 @@ export const EinkaShowcaseSlider: React.FC = () => {
 
                   {/* Product Meta Info */}
                   <div onClick={() => handleProductClick(product)} className="space-y-1">
-                    
-                    {/* 1. Name: Bold, Capitalized Every First Letter */}
-                    <h3 className="font-bold text-base sm:text-lg text-[#1E1E24] tracking-tight line-clamp-2 group-hover:text-[#9E8055] transition-colors leading-snug">
+                    {/* 1. Name */}
+                    <h3 className="font-bold text-base sm:text-lg text-[#1E1E24] tracking-tight line-clamp-1 group-hover:text-[#9E8055] transition-colors leading-snug">
                       {toTitleCase(product.name)}
                     </h3>
 
-                    {/* 2. Collection / Season: Placed strictly BETWEEN Name and Price */}
+                    {/* 2. Collection / Season */}
                     <div className="text-xs font-semibold text-[#8B5E34]">
                       {product.collectionType || product.collection || 'Festive / Eid Special'}
                     </div>
                     
-                    {/* 3. Price: Only cut/strike-through price IF product is explicitly marked on sale */}
+                    {/* 3. Price */}
                     <div className="flex items-baseline gap-2 text-sm sm:text-base font-bold text-[#1E1E24] pt-0.5">
                       <span>
                         {formatPrice(product.price, currency)}
@@ -341,7 +404,6 @@ export const EinkaShowcaseSlider: React.FC = () => {
                         </span>
                       )}
                     </div>
-
                   </div>
 
                 </div>
@@ -371,5 +433,3 @@ export const EinkaShowcaseSlider: React.FC = () => {
     </section>
   );
 };
-
-
