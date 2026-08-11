@@ -35,9 +35,22 @@ if (!fs.existsSync(publicUploadsDir)) {
   }
 }
 
+// Global CORS and Cross-Origin Resource Policy headers for all images and API routes
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Serve public uploads and assets statically
-app.use('/uploads', express.static(publicUploadsDir));
-app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
+app.use('/uploads', express.static(publicUploadsDir, { maxAge: '1d' }));
+app.use('/images', express.static(path.join(__dirname, 'public', 'images'), { maxAge: '1d' }));
+app.use('/src/assets/images', express.static(path.join(__dirname, 'public', 'images'), { maxAge: '1d' }));
 
 /**
  * Saves a base64 image data URL into website local file storage (/public/uploads)

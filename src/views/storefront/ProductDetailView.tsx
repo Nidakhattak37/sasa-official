@@ -8,6 +8,7 @@ import { SizeGuideModal } from '../../components/storefront/SizeGuideModal';
 import { CartDrawer } from '../../components/storefront/CartDrawer';
 import { SearchOverlay } from '../../components/storefront/SearchOverlay';
 import { formatPrice } from '../../utils/currency';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import {
   Star, Heart, ShoppingBag, Truck, ShieldCheck, Ruler, Check, ChevronRight, ChevronLeft,
   Share2, ZoomIn, ZoomOut, Maximize2, RotateCcw, MessageSquarePlus, RefreshCw, X, Sparkles, Move
@@ -140,7 +141,13 @@ export const ProductDetailView: React.FC = () => {
                         selectedImageIdx === idx ? 'border-[#222222] ring-2 ring-[#222222]/20 scale-95 shadow-md' : 'border-[#EAE4DC] opacity-75 hover:opacity-100'
                       }`}
                     >
-                      <img src={img} alt={`View ${idx + 1}`} className="w-full h-full object-cover" />
+                      <img
+                        src={normalizeImageUrl(img, idx)}
+                        alt={`View ${idx + 1}`}
+                        referrerPolicy="no-referrer"
+                        onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                        className="w-full h-full object-cover"
+                      />
                     </button>
                   ))}
                 </div>
@@ -155,8 +162,10 @@ export const ProductDetailView: React.FC = () => {
                 onClick={() => setIsZoomOpen(true)}
               >
                 <img
-                  src={product.images[selectedImageIdx] || product.images[0]}
+                  src={normalizeImageUrl(product.images?.[selectedImageIdx] || product.images?.[0])}
                   alt={product.name}
+                  referrerPolicy="no-referrer"
+                  onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
                   style={{
                     transformOrigin: isMagnifierActive && isHovering ? `${mousePos.x}% ${mousePos.y}%` : 'center center',
                     transform: isMagnifierActive && isHovering ? 'scale(2.5)' : 'scale(1)',
@@ -706,8 +715,10 @@ export const ProductDetailView: React.FC = () => {
 
             {/* Zoomed Image */}
             <img
-              src={product.images[selectedImageIdx] || product.images[0]}
+              src={normalizeImageUrl(product.images?.[selectedImageIdx] || product.images?.[0])}
               alt={product.name}
+              referrerPolicy="no-referrer"
+              onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
               style={{
                 transformOrigin: modalZoom > 1 ? `${modalPan.x}% ${modalPan.y}%` : 'center center',
                 transform: `scale(${modalZoom})`,
@@ -754,7 +765,13 @@ export const ProductDetailView: React.FC = () => {
                         : 'border-white/20 opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                    <img
+                      src={normalizeImageUrl(img, idx)}
+                      alt={`Thumbnail ${idx + 1}`}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                      className="w-full h-full object-cover"
+                    />
                   </button>
                 ))}
               </div>

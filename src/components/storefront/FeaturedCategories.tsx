@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 
 export const FeaturedCategories: React.FC = () => {
   const { categories, setCurrentView, setSelectedCategorySlug } = useApp();
@@ -42,8 +43,10 @@ export const FeaturedCategories: React.FC = () => {
             >
               {/* Background Image with Smooth Hover Scale */}
               <img
-                src={cat.image}
+                src={normalizeImageUrl(cat.image, index)}
                 alt={cat.name}
+                referrerPolicy="no-referrer"
+                onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
                 className="absolute inset-0 w-full h-full object-cover object-top group-hover:scale-108 transition-transform duration-700 ease-out opacity-85 group-hover:opacity-95"
               />
 

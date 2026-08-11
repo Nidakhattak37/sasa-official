@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Product } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { formatPrice } from '../../utils/currency';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import { X, Star, ShoppingBag, Heart, Check, Ruler } from 'lucide-react';
 
 interface QuickViewModalProps {
@@ -55,8 +56,10 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
         <div className="w-full md:w-1/2 bg-[#F5F1EC] p-6 flex flex-col justify-between">
           <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-white">
             <img
-              src={product.images[selectedImage] || product.images[0]}
+              src={normalizeImageUrl(product.images?.[selectedImage] || product.images?.[0])}
               alt={product.name}
+              referrerPolicy="no-referrer"
+              onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
               className="w-full h-full object-cover"
             />
           </div>
@@ -72,7 +75,13 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                     selectedImage === idx ? 'border-[#9E8055]' : 'border-transparent opacity-70'
                   }`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  <img
+                    src={normalizeImageUrl(img, idx)}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                    className="w-full h-full object-cover"
+                  />
                 </button>
               ))}
             </div>

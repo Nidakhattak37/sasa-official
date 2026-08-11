@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Product } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { formatPrice } from '../../utils/currency';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import { Heart, Eye, ShoppingBag, Star } from 'lucide-react';
 
 interface ProductCardProps {
@@ -63,8 +64,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }
         
         {/* Main Image */}
         <img
-          src={isHovered && product.images[1] ? product.images[1] : product.images[0]}
+          src={normalizeImageUrl(isHovered && product.images?.[1] ? product.images[1] : product.images?.[0])}
           alt={product.name}
+          referrerPolicy="no-referrer"
+          onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
           className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
         />
 

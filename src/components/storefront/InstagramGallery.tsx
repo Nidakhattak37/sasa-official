@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { Instagram, ShoppingBag } from 'lucide-react';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 
 export const InstagramGallery: React.FC = () => {
   const { setCurrentView, setSelectedCategorySlug } = useApp();
@@ -55,8 +56,10 @@ export const InstagramGallery: React.FC = () => {
               className="group relative aspect-[3/4] overflow-hidden rounded-lg bg-black/5 cursor-pointer"
             >
               <img
-                src={post.img}
+                src={normalizeImageUrl(post.img, idx)}
                 alt={post.tag}
+                referrerPolicy="no-referrer"
+                onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
               />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-center p-4">

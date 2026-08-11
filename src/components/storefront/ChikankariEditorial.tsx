@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { ArrowRight } from 'lucide-react';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 
 export const ChikankariEditorial: React.FC = () => {
   const { setCurrentView, setSelectedCategorySlug, instantClassics } = useApp();
@@ -20,8 +21,10 @@ export const ChikankariEditorial: React.FC = () => {
           {/* Left Column: Full Portrait Photo */}
           <div className="relative w-full h-[460px] sm:h-[560px] lg:h-[620px] overflow-hidden group bg-gray-100">
             <img
-              src={instantClassics.imageUrl || "/images/sky_blue_chikankari.jpg"}
+              src={normalizeImageUrl(instantClassics.imageUrl || "/images/sky_blue_chikankari.jpg")}
               alt={instantClassics.title}
+              referrerPolicy="no-referrer"
+              onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
               className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
             />
           </div>

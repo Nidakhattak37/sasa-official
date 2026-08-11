@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Heart, Eye, ShoppingBag, Check, Sparkles, Ar
 import { Product } from '../../types';
 import { formatPrice } from '../../utils/currency';
 import { INITIAL_PRODUCTS } from '../../data/mockData';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import { QuickViewModal } from './QuickViewModal';
 import { SizeGuideModal } from './SizeGuideModal';
 
@@ -236,8 +237,8 @@ export const EinkaShowcaseSlider: React.FC = () => {
           {showcaseDresses.map((product, pIdx) => {
             const inWishlist = isInWishlist(product.id);
             const isCardHovered = hoveredCardId === product.id;
-            const primaryImg = product.images[0] || '/images/sky_blue_chikankari.jpg';
-            const secondaryImg = product.images[1] || primaryImg;
+            const primaryImg = normalizeImageUrl(product.images?.[0], pIdx);
+            const secondaryImg = normalizeImageUrl(product.images?.[1] || product.images?.[0], pIdx + 1);
             const isJustAdded = addedProductId === product.id;
 
             return (
@@ -292,6 +293,8 @@ export const EinkaShowcaseSlider: React.FC = () => {
                     src={primaryImg}
                     alt={product.name}
                     loading="lazy"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
                     className={`w-full h-full object-cover object-top transition-opacity duration-700 ease-out ${
                       isCardHovered && secondaryImg !== primaryImg ? 'opacity-0' : 'opacity-100'
                     }`}
@@ -303,6 +306,8 @@ export const EinkaShowcaseSlider: React.FC = () => {
                       src={secondaryImg}
                       alt={product.name}
                       loading="lazy"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
                       className={`absolute inset-0 w-full h-full object-cover object-top transition-all duration-700 ease-out ${
                         isCardHovered ? 'opacity-100 scale-105' : 'opacity-0 scale-100'
                       }`}

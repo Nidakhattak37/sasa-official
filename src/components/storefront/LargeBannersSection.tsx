@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 
 export const LargeBannersSection: React.FC = () => {
   const { setCurrentView, setSelectedCategorySlug } = useApp();
@@ -22,8 +23,10 @@ export const LargeBannersSection: React.FC = () => {
             className="relative h-[440px] sm:h-[520px] rounded-3xl overflow-hidden shadow-xl border border-[#EAE4DC] group cursor-pointer"
           >
             <img
-              src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&q=80&w=1200"
+              src={normalizeImageUrl("https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&q=80&w=1200", 0)}
               alt="Ready to Wear Pret"
+              referrerPolicy="no-referrer"
+              onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
               className="w-full h-full object-cover object-top group-hover:scale-108 transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent group-hover:from-black/90 transition-colors" />
@@ -52,8 +55,10 @@ export const LargeBannersSection: React.FC = () => {
             className="relative h-[440px] sm:h-[520px] rounded-3xl overflow-hidden shadow-xl border border-[#EAE4DC] group cursor-pointer"
           >
             <img
-              src="https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1200"
+              src={normalizeImageUrl("https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1200", 1)}
               alt="Unstitched Luxury Suits"
+              referrerPolicy="no-referrer"
+              onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
               className="w-full h-full object-cover object-top group-hover:scale-108 transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent group-hover:from-black/90 transition-colors" />

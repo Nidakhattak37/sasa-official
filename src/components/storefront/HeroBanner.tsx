@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { INITIAL_BANNERS } from '../../data/mockData';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 
 export const HeroBanner: React.FC = () => {
   const { banners, setCurrentView, setSelectedCategorySlug } = useApp();
@@ -54,8 +55,10 @@ export const HeroBanner: React.FC = () => {
         >
           {/* 100% Full Bleed Edge-To-Edge Image */}
           <img
-            src={current.imageUrl}
+            src={normalizeImageUrl(current.imageUrl)}
             alt={current.title}
+            referrerPolicy="no-referrer"
+            onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
             className="w-full h-full object-cover object-top sm:object-center opacity-90 transition-transform duration-1000"
           />
 

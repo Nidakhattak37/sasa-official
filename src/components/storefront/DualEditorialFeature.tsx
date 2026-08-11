@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 
 export const DualEditorialFeature: React.FC = () => {
   const { setCurrentView, setSelectedCategorySlug, dualEditorial } = useApp();
@@ -48,8 +49,10 @@ export const DualEditorialFeature: React.FC = () => {
         >
           {/* Background Image */}
           <img 
-            src={left.imageUrl || "/images/sky_blue_chikankari.jpg"} 
+            src={normalizeImageUrl(left.imageUrl || "/images/sky_blue_chikankari.jpg", 0)} 
             alt={left.title} 
+            referrerPolicy="no-referrer"
+            onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
             className="absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-1000 ease-out"
           />
           
@@ -103,8 +106,10 @@ export const DualEditorialFeature: React.FC = () => {
         >
           {/* Background Image */}
           <img 
-            src={right.imageUrl || "/images/yellow_mustard_suit.jpg"} 
+            src={normalizeImageUrl(right.imageUrl || "/images/yellow_mustard_suit.jpg", 1)} 
             alt={right.title} 
+            referrerPolicy="no-referrer"
+            onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
             className="absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-1000 ease-out"
           />
 
