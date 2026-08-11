@@ -276,14 +276,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_PRODUCTS;
   });
 
-  // Sync products from MongoDB Atlas on mount if server database has records
+  // Helper to remove any MongoDB internal _id before saving to state or sending over API
+  const stripMongoId = <T extends Record<string, any>>(obj: T): T => {
+    if (!obj || typeof obj !== 'object') return obj;
+    const { _id, ...rest } = obj;
+    return rest as T;
+  };
+
+  // Sync products & orders from MongoDB Atlas on mount if server database has records
   useEffect(() => {
     fetch('/api/products')
       .then(res => res.json())
       .then(data => {
         if (data.success && Array.isArray(data.products) && data.products.length > 0) {
-          setProducts(data.products);
-          localStorage.setItem('sasa_products', JSON.stringify(data.products));
+          const cleanProds = data.products.map((p: any) => stripMongoId(p));
+          setProducts(cleanProds);
+          localStorage.setItem('sasa_products', JSON.stringify(cleanProds));
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/orders')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.orders) && data.orders.length > 0) {
+          const cleanOrders = data.orders.map((o: any) => stripMongoId(o));
+          setOrders(prev => {
+            // Merge existing local orders with MongoDB orders
+            const map = new Map();
+            cleanOrders.forEach((o: Order) => map.set(o.id, o));
+            prev.forEach(o => {
+              if (!map.has(o.id)) map.set(o.id, o);
+            });
+            const merged = Array.from(map.values());
+            localStorage.setItem('sasa_orders', JSON.stringify(merged));
+            return merged;
+          });
         }
       })
       .catch(() => {});
@@ -815,6 +843,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateOrderStatus = (orderId: string, newStatus: OrderStatus, adminNote?: string) => {
     const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    let updatedOrderObj: Order | null = null;
+
     setOrders(prev => prev.map(order => {
       if (order.id === orderId) {
         const updatedTimeline = order.timeline.map(t => {
@@ -824,16 +854,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return t;
         });
 
-        return {
+        const updated = {
           ...order,
           orderStatus: newStatus,
           paymentStatus: newStatus === 'Delivered' ? 'Paid' : order.paymentStatus,
           adminNotes: adminNote || order.adminNotes,
           timeline: updatedTimeline
         };
+        updatedOrderObj = updated;
+        return updated;
       }
       return order;
     }));
+
+    if (updatedOrderObj) {
+      fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: stripMongoId(updatedOrderObj) })
+      }).catch(err => console.warn('[MONGODB ORDER SYNC NOTICE]', err));
+    }
   };
 
   const getOrderById = (orderId: string) => orders.find(o => o.id.toLowerCase() === orderId.toLowerCase());
@@ -851,7 +891,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetch('/api/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product: newProd })
+      body: JSON.stringify({ product: stripMongoId(newProd) })
     }).catch(err => console.warn('[MONGODB SYNC NOTICE]', err));
   };
 
@@ -862,7 +902,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetch('/api/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product: updated })
+      body: JSON.stringify({ product: stripMongoId(updated) })
     }).catch(err => console.warn('[MONGODB SYNC NOTICE]', err));
   };
 

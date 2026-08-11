@@ -101,13 +101,26 @@ function sanitizeProductImageLinks(product) {
 }
 
 /**
- * Strips MongoDB immutable fields (like `_id`) from update payloads
+ * Recursively strips MongoDB immutable fields (like `_id`) from update payloads
  * to prevent "Performing an update on the path '_id' would modify the immutable field '_id'" errors.
  */
 function cleanMongoPayload(obj) {
   if (!obj || typeof obj !== 'object') return obj;
-  const copy = { ...obj };
-  delete copy._id;
+  if (obj instanceof Date || obj instanceof RegExp) return obj;
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => cleanMongoPayload(item));
+  }
+
+  const copy = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (key === '_id') continue;
+    if (value !== null && typeof value === 'object') {
+      copy[key] = cleanMongoPayload(value);
+    } else {
+      copy[key] = value;
+    }
+  }
   return copy;
 }
 
@@ -122,14 +135,50 @@ let mongoDb = null;
 let isMongoConnecting = false;
 let lastMongoError = null;
 let lastMongoAttemptTime = 0;
-const MONGO_RETRY_COOLDOWN_MS = 25000; // 25s cooldown before retrying failed Atlas connection
+let activeMongoUri = null;
+const MONGO_RETRY_COOLDOWN_MS = 30000; // 30s cooldown before retrying failed Atlas connection
+
+/**
+ * Sanitizes and normalizes MongoDB URIs, ensuring special characters in credentials
+ * (like @, #, $, %, +, ?, /) are safely URL-encoded to prevent authentication failures.
+ */
+function sanitizeMongoUri(rawUri) {
+  if (!rawUri || typeof rawUri !== 'string') return '';
+  let uri = rawUri.trim().replace(/^['"]|['"]$/g, '');
+
+  try {
+    const protoMatch = uri.match(/^(mongodb(?:\+srv)?:\/\/)(.*)$/);
+    if (protoMatch) {
+      const proto = protoMatch[1];
+      const rest = protoMatch[2];
+      const atIdx = rest.lastIndexOf('@');
+      if (atIdx !== -1) {
+        const userinfo = rest.substring(0, atIdx);
+        const hostAndOpts = rest.substring(atIdx + 1);
+        const colonIdx = userinfo.indexOf(':');
+        if (colonIdx !== -1) {
+          const rawUser = decodeURIComponent(userinfo.substring(0, colonIdx));
+          const rawPass = decodeURIComponent(userinfo.substring(colonIdx + 1));
+          const encodedUser = encodeURIComponent(rawUser);
+          const encodedPass = encodeURIComponent(rawPass);
+          return `${proto}${encodedUser}:${encodedPass}@${hostAndOpts}`;
+        }
+      }
+    }
+  } catch {
+    // Return trimmed uri if parser encounters unexpected format
+  }
+  return uri;
+}
 
 function getMongoUri() {
-  return process.env.MONGODB_URI || 
+  const raw = activeMongoUri ||
+         process.env.MONGODB_URI || 
          process.env.DATABASE_URL || 
          process.env.MONGO_URI || 
          process.env.MONGODB_URL || 
          '';
+  return sanitizeMongoUri(raw);
 }
 
 function getMongoDbName() {
@@ -141,8 +190,8 @@ function formatMongoError(err) {
   if (msg.includes('SSL alert number 80') || msg.includes('tlsv1 alert internal error')) {
     return 'MongoDB Atlas Network Access Firewall Block: The cluster rejected the connection (SSL alert 80). Please add "0.0.0.0/0" in your MongoDB Atlas Dashboard > Network Access > Add IP Address.';
   }
-  if (msg.includes('bad auth') || msg.includes('Authentication failed')) {
-    return 'MongoDB Atlas Authentication Failed: Check the database username and password in MONGODB_URI.';
+  if (msg.includes('bad auth') || msg.includes('Authentication failed') || msg.includes('8000')) {
+    return 'MongoDB Atlas Authentication Failed: Check the database username and password in MONGODB_URI (ensure special characters in password are URL-encoded or reset in Atlas > Database Access).';
   }
   if (msg.includes('querySrv ENOTFOUND') || msg.includes('getaddrinfo ENOTFOUND')) {
     return 'MongoDB Atlas Host Not Found: Verify your cluster hostname or SRV connection string.';
@@ -151,7 +200,8 @@ function formatMongoError(err) {
 }
 
 async function getMongoDatabase(customUri = null, customDbName = null, forceRetry = false) {
-  const uri = customUri || getMongoUri();
+  const rawTargetUri = customUri || getMongoUri();
+  const uri = sanitizeMongoUri(rawTargetUri);
   const dbName = customDbName || getMongoDbName();
 
   if (!uri) {
@@ -163,7 +213,7 @@ async function getMongoDatabase(customUri = null, customDbName = null, forceRetr
     return mongoDb;
   }
 
-  // Prevent connection stampede or rapid looping when Atlas IP is blocking
+  // Prevent connection stampede or rapid looping when Atlas credentials / IP are invalid
   const now = Date.now();
   if (!customUri && !forceRetry && lastMongoError && (now - lastMongoAttemptTime < MONGO_RETRY_COOLDOWN_MS)) {
     return null;
@@ -180,8 +230,8 @@ async function getMongoDatabase(customUri = null, customDbName = null, forceRetr
     lastMongoAttemptTime = now;
 
     const client = new MongoClient(uri, {
-      connectTimeoutMS: 3500,
-      serverSelectionTimeoutMS: 3500,
+      connectTimeoutMS: 4000,
+      serverSelectionTimeoutMS: 4000,
       socketTimeoutMS: 6000,
       tls: true,
       tlsAllowInvalidCertificates: true,
@@ -192,12 +242,13 @@ async function getMongoDatabase(customUri = null, customDbName = null, forceRetr
     const database = client.db(dbName);
     await database.command({ ping: 1 });
 
-    if (!customUri) {
-      mongoClient = client;
-      mongoDb = database;
-      lastMongoError = null;
-      console.log(`[MONGODB ATLAS] Connected successfully. Active database: "${dbName}"`);
+    mongoClient = client;
+    mongoDb = database;
+    lastMongoError = null;
+    if (customUri) {
+      activeMongoUri = customUri;
     }
+    console.log(`[MONGODB ATLAS] Connected successfully. Active database: "${dbName}"`);
 
     return database;
   } catch (err) {
@@ -205,7 +256,7 @@ async function getMongoDatabase(customUri = null, customDbName = null, forceRetr
     if (!customUri) {
       lastMongoError = readableError;
       mongoDb = null;
-      console.warn(`[MONGODB ATLAS NOTICE] Cluster connection paused: ${readableError}`);
+      console.log(`[DATABASE ENGINE] Local Storage & Website Storage Mode active (Atlas status: ${readableError})`);
     }
     if (customUri) {
       throw new Error(readableError);
@@ -780,21 +831,28 @@ app.get('/api/db/status', async (req, res) => {
       });
     }
 
-    // When connection is in cooldown or IP firewall blocked
+    // When connection is in cooldown or IP firewall blocked / authentication pending
     if (hasUri) {
+      const isAuthErr = Boolean(lastMongoError && (lastMongoError.includes('Authentication Failed') || lastMongoError.includes('bad auth') || lastMongoError.includes('8000')));
+      const isSslErr = Boolean(lastMongoError && (lastMongoError.includes('SSL alert 80') || lastMongoError.includes('Firewall')));
+      
       return res.json({
         connected: false,
-        type: 'MongoDB Atlas (Configuration Required)',
+        type: isAuthErr ? 'Local Mode (Atlas Authentication Check Needed)' : 'MongoDB Atlas (Configuration Required)',
         databaseName: dbName,
         uriConfigured: true,
         maskedUri,
         error: lastMongoError || 'Connection paused',
-        isSslAlert80: Boolean(lastMongoError && (lastMongoError.includes('SSL alert 80') || lastMongoError.includes('Firewall'))),
-        message: lastMongoError || 'MongoDB Atlas connection paused. Ensure 0.0.0.0/0 is whitelisted in MongoDB Atlas Network Access.'
+        isAuthError: isAuthErr,
+        isSslAlert80: isSslErr,
+        activeFallback: true,
+        message: lastMongoError || 'MongoDB Atlas connection in local fallback mode.'
       });
     }
   } catch (err) {
     const formatted = formatMongoError(err);
+    const isAuthErr = formatted.includes('Authentication Failed') || formatted.includes('bad auth');
+    const isSslErr = formatted.includes('SSL alert 80') || formatted.includes('Firewall');
     return res.json({
       connected: false,
       type: 'MongoDB Atlas',
@@ -802,7 +860,9 @@ app.get('/api/db/status', async (req, res) => {
       uriConfigured: hasUri,
       maskedUri,
       error: formatted,
-      isSslAlert80: formatted.includes('SSL alert 80') || formatted.includes('Firewall'),
+      isAuthError: isAuthErr,
+      isSslAlert80: isSslErr,
+      activeFallback: true,
       message: formatted
     });
   }
@@ -1081,6 +1141,84 @@ app.post('/api/db/sync', async (req, res) => {
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// GET /api/banners: Fetch promotional banners
+app.get('/api/banners', async (req, res) => {
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const rawBanners = await db.collection('banners').find({}).toArray();
+      const banners = rawBanners.map(b => cleanMongoPayload(b));
+      return res.json({ success: true, source: 'mongodb_atlas', banners });
+    }
+  } catch (err) {
+    console.warn('[MONGODB BANNERS FETCH ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local', banners: [] });
+});
+
+// POST /api/banners: Save or update banner
+app.post('/api/banners', async (req, res) => {
+  const { banner } = req.body || {};
+  if (!banner || !banner.id) {
+    return res.status(400).json({ success: false, message: 'Missing banner data or ID' });
+  }
+  const cleanBanner = { ...banner, imageUrl: saveBase64Image(banner.imageUrl, 'banner') };
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const updateData = cleanMongoPayload(cleanBanner);
+      await db.collection('banners').updateOne(
+        { id: cleanBanner.id },
+        { $set: updateData },
+        { upsert: true }
+      );
+      return res.json({ success: true, source: 'mongodb_atlas', banner: cleanBanner });
+    }
+  } catch (err) {
+    console.warn('[MONGODB BANNER SAVE ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local_fallback', banner: cleanBanner });
+});
+
+// GET /api/settings: Fetch store settings
+app.get('/api/settings', async (req, res) => {
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const rawSettings = await db.collection('settings').findOne({ key: 'store_settings' });
+      if (rawSettings) {
+        return res.json({ success: true, source: 'mongodb_atlas', settings: cleanMongoPayload(rawSettings) });
+      }
+    }
+  } catch (err) {
+    console.warn('[MONGODB SETTINGS FETCH ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local', settings: null });
+});
+
+// POST /api/settings: Save store settings
+app.post('/api/settings', async (req, res) => {
+  const { settings } = req.body || {};
+  if (!settings) {
+    return res.status(400).json({ success: false, message: 'Missing settings payload' });
+  }
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const updateData = cleanMongoPayload(settings);
+      await db.collection('settings').updateOne(
+        { key: 'store_settings' },
+        { $set: updateData },
+        { upsert: true }
+      );
+      return res.json({ success: true, source: 'mongodb_atlas', settings: updateData });
+    }
+  } catch (err) {
+    console.warn('[MONGODB SETTINGS SAVE ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local_fallback', settings });
 });
 
 // ----------------------

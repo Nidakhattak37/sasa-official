@@ -123,3 +123,18 @@ Stores global storefront configuration.
    - Insert `/sasaofficial` before the `?` query parameters:
      `mongodb+srv://sasa_admin:YourPass123@cluster0.xxxxx.mongodb.net/sasaofficial?retryWrites=true&w=majority`
 6. Paste into your `.env` file or test it directly in **Admin Panel > Store Settings > MongoDB Atlas Cloud Database**.
+
+---
+
+## 5. Troubleshooting & Solutions: Immutable `_id` Error Resolution
+
+### Why "Performing an update on the path '_id' would modify the immutable field '_id'" Occurs:
+In MongoDB, the `_id` field is the permanent immutable primary key of a document. When performing an `updateOne(filter, { $set: updatePayload }, { upsert: true })` operation, if `updatePayload` contains `_id` (even with the exact same value), MongoDB throws this error to protect document identity.
+
+### How SASA Official Handles This:
+1. **Recursive Payload Sanitization (`cleanMongoPayload`)**:
+   - The backend server (`server.js`) recursively sanitizes all `$set` payloads for `products`, `orders`, `banners`, and `settings`, stripping any `_id` property before sending the update to MongoDB Atlas.
+   - Products and orders are matched by their unique business identifier (`id`), allowing MongoDB to update document contents while preserving the existing database `_id` intact.
+2. **Client-Side Defense (`stripMongoId`)**:
+   - The client application (`AppContext.tsx`) also strips `_id` when hydrating state from `/api/products` and `/api/orders`, ensuring clean payloads are submitted on subsequent updates.
+

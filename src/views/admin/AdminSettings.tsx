@@ -32,6 +32,9 @@ export const AdminSettings: React.FC = () => {
     databaseName?: string;
     uriConfigured?: boolean;
     maskedUri?: string;
+    isAuthError?: boolean;
+    isSslAlert80?: boolean;
+    activeFallback?: boolean;
     counts?: Record<string, number>;
     message?: string;
   }>({ loading: true });
@@ -55,6 +58,9 @@ export const AdminSettings: React.FC = () => {
           databaseName: data.databaseName || 'sasaofficial',
           uriConfigured: data.uriConfigured,
           maskedUri: data.maskedUri,
+          isAuthError: data.isAuthError,
+          isSslAlert80: data.isSslAlert80,
+          activeFallback: data.activeFallback,
           counts: data.counts || { orders: orders.length, products: products.length, customers: 1 },
           message: data.message
         });
@@ -324,7 +330,7 @@ MONGODB_DB_NAME=${mongoDbName || 'sasaofficial'}`;
           <div className="bg-[#FAF8F5] p-3.5 rounded-lg border border-[#EAE4DC]">
             <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold block mb-1">Atlas Status</span>
             <span className={`text-[11px] font-bold block truncate ${dbStatus.connected ? 'text-emerald-700' : 'text-amber-700'}`}>
-              {dbStatus.connected ? 'Cluster Online' : dbStatus.uriConfigured ? 'Action Needed (IP Allow)' : 'URI Not Set'}
+              {dbStatus.connected ? 'Cluster Online' : dbStatus.isAuthError ? 'Auth Check Required' : dbStatus.uriConfigured ? 'Action Needed (IP Allow)' : 'Local Storage Mode'}
             </span>
             <span className="text-[10px] text-gray-500 mt-0.5 block font-mono truncate">
               {dbStatus.maskedUri || 'sasaofficial.xo5gxgs.mongodb.net'}
@@ -332,7 +338,7 @@ MONGODB_DB_NAME=${mongoDbName || 'sasaofficial'}`;
           </div>
         </div>
 
-        {/* STORAGE ARCHITECTURE SYSTEM STATUS */}
+        {/* Decoupled Storage Architecture System Status */}
         <div className="p-4 bg-[#FAF8F5] rounded-xl border border-[#EAE4DC] space-y-3">
           <div className="flex items-center justify-between">
             <span className="font-bold text-[#222] text-xs flex items-center gap-1.5">
@@ -395,8 +401,33 @@ MONGODB_DB_NAME=${mongoDbName || 'sasaofficial'}`;
           </div>
         </div>
 
-        {/* Action Needed Banner if URI is provided but Atlas IP is blocking connection */}
-        {dbStatus.uriConfigured && !dbStatus.connected && (
+        {/* Action Needed Banner: Authentication Failure */}
+        {dbStatus.uriConfigured && !dbStatus.connected && dbStatus.isAuthError && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2.5">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-700 flex-shrink-0" />
+              <span className="font-bold text-amber-900 text-xs">
+                MongoDB Atlas: Authentication Pending (Local Storage Mode Active)
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-800 leading-relaxed">
+              Your connection string reached the MongoDB Atlas cluster (<strong>sasaofficial.xo5gxgs.mongodb.net</strong>), but the database user credentials failed authentication. The store is operating smoothly in local fallback mode.
+            </p>
+            <div className="bg-white/80 border border-amber-300 rounded-lg p-3 text-[11px] text-amber-900 space-y-1">
+              <strong className="block text-amber-950 font-bold">How to verify or reset your Atlas Database Credentials:</strong>
+              <ol className="list-decimal list-inside space-y-1 text-gray-700">
+                <li>Log in to your <a href="https://cloud.mongodb.com" target="_blank" rel="noopener noreferrer" className="text-[#9E8055] font-bold underline">MongoDB Atlas Console</a>.</li>
+                <li>In the left sidebar under <strong>Security</strong>, click <strong>Database Access</strong>.</li>
+                <li>Verify your database username (e.g. <code>mupak9_db_user</code> or create a new user <code>sasa_admin</code> with <em>Read and write to any database</em> privileges).</li>
+                <li>Click <strong>Edit &gt; Edit Password</strong> to reset your password.</li>
+                <li>Paste the updated connection string in the box below and click <strong>Test Connection</strong> to activate!</li>
+              </ol>
+            </div>
+          </div>
+        )}
+
+        {/* Action Needed Banner: IP Firewall Block (SSL Alert 80) */}
+        {dbStatus.uriConfigured && !dbStatus.connected && dbStatus.isSslAlert80 && (
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2.5">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-700 flex-shrink-0" />
@@ -405,7 +436,7 @@ MONGODB_DB_NAME=${mongoDbName || 'sasaofficial'}`;
               </span>
             </div>
             <p className="text-[11px] text-amber-800 leading-relaxed">
-              Your MongoDB connection string is detected (<strong>sasaofficial.xo5gxgs.mongodb.net</strong>), but MongoDB Atlas refused the TLS handshake (<code>SSL alert number 80</code>). This occurs when the server's cloud IP address is not whitelisted in your MongoDB Atlas cluster firewall.
+              Your MongoDB connection string is detected, but MongoDB Atlas refused the TLS handshake (<code>SSL alert number 80</code>). This occurs when the server's cloud IP address is not whitelisted in your MongoDB Atlas cluster firewall.
             </p>
             <div className="bg-white/80 border border-amber-300 rounded-lg p-3 text-[11px] text-amber-900 space-y-1">
               <strong className="block text-amber-950 font-bold">1-Minute Fix in your MongoDB Atlas Dashboard:</strong>
