@@ -1,10 +1,12 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { Instagram, ShoppingBag } from 'lucide-react';
+import { Instagram, ShoppingBag, ExternalLink } from 'lucide-react';
 import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 
 export const InstagramGallery: React.FC = () => {
-  const { setCurrentView, setSelectedCategorySlug } = useApp();
+  const { setCurrentView, setSelectedCategorySlug, settings } = useApp();
+
+  const instagramUrl = settings.instagramUrl || 'https://www.instagram.com/sasaofficial.pk?igsh=MXhhZmJwNzR1M3FucA==';
 
   const handleShopLook = () => {
     setSelectedCategorySlug(null);
@@ -39,12 +41,23 @@ export const InstagramGallery: React.FC = () => {
         
         {/* Header */}
         <div className="text-center max-w-xl mx-auto mb-10">
-          <span className="text-xs uppercase tracking-[0.25em] font-semibold text-[#9E8055] flex items-center justify-center gap-1.5">
-            <Instagram className="w-4 h-4" /> Follow @sasa.official
-          </span>
-          <h2 className="font-serif text-3xl font-normal text-[#222222] mt-1">
+          <a
+            href={instagramUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.25em] font-semibold text-[#9E8055] hover:text-[#222] transition-colors py-1 px-3.5 rounded-full bg-[#FAF8F5] border border-[#EAE4DC] hover:border-[#9E8055] group shadow-2xs"
+            id="instagram-gallery-follow-link"
+          >
+            <Instagram className="w-4 h-4 text-[#D4AF37] group-hover:scale-110 transition-transform" />
+            <span>Follow @sasaofficial.pk</span>
+            <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
+          </a>
+          <h2 className="font-serif text-3xl font-normal text-[#222222] mt-3">
             Styled By You On Instagram
           </h2>
+          <p className="text-xs text-gray-500 mt-1">
+            Tag <span className="font-semibold text-[#222]">@sasaofficial.pk</span> in your SASA outfits to be featured
+          </p>
         </div>
 
         {/* 5-Column Grid */}
@@ -71,6 +84,21 @@ export const InstagramGallery: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Bottom Call to Action */}
+        <div className="mt-8 text-center">
+          <a
+            href={instagramUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#1E1E24] hover:bg-[#9E8055] text-white text-xs font-semibold uppercase tracking-wider rounded-lg transition-all shadow-sm hover:shadow group"
+            id="instagram-gallery-view-feed-btn"
+          >
+            <Instagram className="w-4 h-4 text-[#D4AF37] group-hover:scale-110 transition-transform" />
+            <span>Visit @sasaofficial.pk on Instagram</span>
+            <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+          </a>
         </div>
 
       </div>

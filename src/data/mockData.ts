@@ -889,6 +889,7 @@ export const INITIAL_STORE_SETTINGS: StoreSettings = {
   email: 'info@sasaofficial.com',
   phone: '+92 42 111 727 200',
   address: 'SASA House, M.M. Alam Road, Gulberg III, Lahore, Pakistan',
+  instagramUrl: 'https://www.instagram.com/sasaofficial.pk?igsh=MXhhZmJwNzR1M3FucA==',
   currency: 'PKR',
   freeShippingThreshold: 10000,
   defaultShippingFee: 250,

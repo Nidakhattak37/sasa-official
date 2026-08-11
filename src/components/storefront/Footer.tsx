@@ -1,9 +1,11 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { Phone, Mail, MapPin, ShieldCheck, Heart } from 'lucide-react';
+import { Phone, Mail, MapPin, ShieldCheck, Heart, Instagram } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   const { setCurrentView, setSelectedCategorySlug, settings, userRole, setUserRole } = useApp();
+
+  const instagramUrl = settings.instagramUrl || 'https://www.instagram.com/sasaofficial.pk?igsh=MXhhZmJwNzR1M3FucA==';
 
   const handleNav = (view: string, catSlug: string | null = null) => {
     setSelectedCategorySlug(catSlug);
@@ -41,6 +43,18 @@ export const Footer: React.FC = () => {
             <div className="flex items-center space-x-3 text-[#BBB]">
               <Mail className="w-4 h-4 text-[#D4AF37] flex-shrink-0" />
               <span className="text-[11px]">{settings.email}</span>
+            </div>
+            <div className="pt-1">
+              <a
+                href={instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-2 text-[#D4AF37] hover:text-white bg-[#222222] hover:bg-[#2A2A2A] border border-[#333333] px-3 py-1.5 rounded-md transition-all group"
+                id="footer-instagram-link"
+              >
+                <Instagram className="w-4 h-4 text-[#D4AF37] flex-shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="text-[11px] font-semibold tracking-wide">@sasaofficial.pk on Instagram</span>
+              </a>
             </div>
           </div>
 
@@ -81,7 +95,16 @@ export const Footer: React.FC = () => {
               <li><button onClick={() => handleNav('contact')} className="hover:text-white transition">Contact Us</button></li>
               <li><button onClick={() => handleNav('privacy-policy')} className="hover:text-white transition">Privacy Policy</button></li>
               <li><button onClick={() => handleNav('terms')} className="hover:text-white transition">Terms of Service</button></li>
-
+              <li>
+                <a
+                  href={instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#D4AF37] transition inline-flex items-center gap-1 text-[#AAA]"
+                >
+                  <Instagram className="w-3.5 h-3.5 text-[#D4AF37]" /> Official Instagram
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -91,6 +114,16 @@ export const Footer: React.FC = () => {
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[#777777] text-[11px]">
           <p>© {new Date().getFullYear()} SASA Official. All Rights Reserved. Crafted with Elegance.</p>
           <div className="flex items-center space-x-4">
+            <a
+              href={instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#999] hover:text-[#D4AF37] transition flex items-center gap-1 font-medium"
+              id="subfooter-instagram-link"
+            >
+              <Instagram className="w-3.5 h-3.5 text-[#D4AF37]" /> instagram.com/sasaofficial.pk
+            </a>
+            <span>•</span>
             <span>COD Available Nationwide</span>
           </div>
         </div>

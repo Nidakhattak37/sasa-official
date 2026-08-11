@@ -3,10 +3,12 @@ import { useApp } from '../../context/AppContext';
 import { AnnouncementBar } from '../../components/storefront/AnnouncementBar';
 import { Header } from '../../components/storefront/Header';
 import { Footer } from '../../components/storefront/Footer';
-import { Mail, Phone, MapPin, CheckCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, CheckCircle, Instagram, ExternalLink } from 'lucide-react';
 
 export const CMSPageView: React.FC = () => {
   const { currentView, cmsPages, settings } = useApp();
+
+  const instagramUrl = settings.instagramUrl || 'https://www.instagram.com/sasaofficial.pk?igsh=MXhhZmJwNzR1M3FucA==';
 
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -57,7 +59,7 @@ export const CMSPageView: React.FC = () => {
             {currentView === 'contact' && (
               <div className="pt-8 border-t border-[#EAE4DC] space-y-8">
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs bg-white p-6 rounded-xl border border-[#EAE4DC] shadow-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 text-xs bg-[#FAF8F5] p-6 rounded-xl border border-[#EAE4DC] shadow-2xs">
                   <div className="space-y-1">
                     <MapPin className="w-5 h-5 text-[#9E8055]" />
                     <strong className="block text-[#222]">Flagship Boutique:</strong>
@@ -74,6 +76,21 @@ export const CMSPageView: React.FC = () => {
                     <Mail className="w-5 h-5 text-[#9E8055]" />
                     <strong className="block text-[#222]">Customer Care Email:</strong>
                     <p className="text-gray-600">{settings.email}</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Instagram className="w-5 h-5 text-[#D4AF37]" />
+                    <strong className="block text-[#222]">Official Instagram:</strong>
+                    <a
+                      href={instagramUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#9E8055] hover:text-[#222] font-semibold flex items-center gap-1 transition-colors"
+                      id="contact-instagram-link"
+                    >
+                      @sasaofficial.pk
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
                   </div>
                 </div>
 

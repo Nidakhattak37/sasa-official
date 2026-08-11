@@ -190,6 +190,7 @@ export interface StoreSettings {
   email: string;
   phone: string;
   address: string;
+  instagramUrl?: string;
   currency: 'PKR' | 'USD' | 'AED' | 'GBP';
   freeShippingThreshold: number;
   defaultShippingFee: number;

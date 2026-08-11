@@ -9,6 +9,7 @@ export const AdminSettings: React.FC = () => {
   const [phone, setPhone] = useState(settings.phone);
   const [email, setEmail] = useState(settings.email || 'info@sasaofficial.com');
   const [address, setAddress] = useState(settings.address);
+  const [instagramUrl, setInstagramUrl] = useState(settings.instagramUrl || 'https://www.instagram.com/sasaofficial.pk?igsh=MXhhZmJwNzR1M3FucA==');
   const [defaultShippingFee, setDefaultShippingFee] = useState(settings.defaultShippingFee);
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(settings.freeShippingThreshold);
   const [taxRate, setTaxRate] = useState(settings.taxRate);
@@ -101,10 +102,14 @@ export const AdminSettings: React.FC = () => {
       phone,
       email,
       address,
+      instagramUrl,
       defaultShippingFee: Number(defaultShippingFee),
       freeShippingThreshold: Number(freeShippingThreshold),
       taxRate: Number(taxRate),
-      currencyCode
+      currency: currencyCode || settings.currency || 'PKR',
+      announcementBarText: settings.announcementBarText,
+      enableCOD: settings.enableCOD,
+      enableCard: settings.enableCard
     });
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
@@ -750,6 +755,33 @@ MONGODB_DB_NAME=${mongoDbName || 'sasaofficial'}`;
                 onChange={(e) => setAddress(e.target.value)}
                 className="w-full px-3 py-2 border rounded bg-white"
               />
+            </div>
+
+            <div className="sm:col-span-2">
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-semibold text-[#222]">Official Instagram Profile URL</label>
+                {instagramUrl && (
+                  <a
+                    href={instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-[#9E8055] hover:underline font-semibold inline-flex items-center gap-1"
+                  >
+                    Open Profile ↗
+                  </a>
+                )}
+              </div>
+              <input
+                type="url"
+                required
+                value={instagramUrl}
+                onChange={(e) => setInstagramUrl(e.target.value)}
+                placeholder="https://www.instagram.com/sasaofficial.pk?igsh=MXhhZmJwNzR1M3FucA=="
+                className="w-full px-3 py-2 border rounded bg-white font-mono text-xs"
+              />
+              <span className="text-[10px] text-gray-400">
+                Connected handle: <strong>@sasaofficial.pk</strong> (displayed in footer, gallery, and contact desk)
+              </span>
             </div>
           </div>
         </div>
