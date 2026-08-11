@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { formatPrice } from '../../utils/currency';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import { SaleCampaign } from '../../types';
 import {
   Percent, Tag, Plus, CheckCircle2, AlertCircle, Trash2, Play, Pause,
@@ -358,7 +359,13 @@ export const AdminSalesCampaigns: React.FC = () => {
                       <tr key={p.id} className="hover:bg-amber-50/30 transition">
                         <td className="p-3">
                           <div className="flex items-center gap-3">
-                            <img src={p.images[0]} alt="" className="w-10 h-12 object-cover rounded border border-[#EAE4DC]" />
+                            <img
+                              src={normalizeImageUrl(p.images?.[0])}
+                              alt=""
+                              referrerPolicy="no-referrer"
+                              onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                              className="w-10 h-12 object-cover rounded border border-[#EAE4DC]"
+                            />
                             <div>
                               <span className="font-bold text-[#222] block">{p.name}</span>
                               <span className="text-[10px] text-gray-400 font-mono">{p.sku}</span>

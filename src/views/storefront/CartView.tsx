@@ -4,6 +4,7 @@ import { AnnouncementBar } from '../../components/storefront/AnnouncementBar';
 import { Header } from '../../components/storefront/Header';
 import { Footer } from '../../components/storefront/Footer';
 import { formatPrice } from '../../utils/currency';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import { ShoppingBag, Trash2, ArrowRight, Tag, ShieldCheck, Check } from 'lucide-react';
 
 export const CartView: React.FC = () => {
@@ -93,8 +94,10 @@ export const CartView: React.FC = () => {
                       
                       <div className="flex gap-4 items-center">
                         <img
-                          src={item.product.images[0]}
+                          src={normalizeImageUrl(item.product.images?.[0])}
                           alt={item.product.name}
+                          referrerPolicy="no-referrer"
+                          onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
                           className="w-20 h-24 object-cover rounded bg-[#F5F1EC] border border-[#EAE4DC]"
                         />
                         <div className="space-y-1">

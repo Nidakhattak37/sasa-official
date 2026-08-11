@@ -100,6 +100,17 @@ function sanitizeProductImageLinks(product) {
   return clean;
 }
 
+/**
+ * Strips MongoDB immutable fields (like `_id`) from update payloads
+ * to prevent "Performing an update on the path '_id' would modify the immutable field '_id'" errors.
+ */
+function cleanMongoPayload(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  const copy = { ...obj };
+  delete copy._id;
+  return copy;
+}
+
 // In-memory store for recent email logs (useful for admin verification)
 const recentEmailLogs = [];
 
@@ -535,9 +546,11 @@ app.post('/api/send-order-email', async (req, res) => {
   // Automatically persist order to MongoDB Atlas if connected
   getMongoDatabase().then(db => {
     if (db) {
+      const orderPayload = cleanMongoPayload(order);
+      orderPayload.savedAt = new Date();
       db.collection('orders').updateOne(
         { id: order.id },
-        { $set: { ...order, savedAt: new Date() } },
+        { $set: orderPayload },
         { upsert: true }
       ).catch(e => console.warn('[MONGODB ORDER AUTO-SAVE NOTICE]', e.message));
     }
@@ -902,7 +915,8 @@ app.get('/api/products', async (req, res) => {
   try {
     const db = await getMongoDatabase();
     if (db) {
-      const products = await db.collection('products').find({}).toArray();
+      const rawProducts = await db.collection('products').find({}).toArray();
+      const products = rawProducts.map(p => cleanMongoPayload(p));
       return res.json({
         success: true,
         source: 'mongodb_atlas',
@@ -930,9 +944,10 @@ app.post('/api/products', async (req, res) => {
   try {
     const db = await getMongoDatabase();
     if (db) {
+      const updateData = cleanMongoPayload(cleanProduct);
       await db.collection('products').updateOne(
         { id: cleanProduct.id },
-        { $set: cleanProduct },
+        { $set: updateData },
         { upsert: true }
       );
       return res.json({
@@ -974,7 +989,8 @@ app.get('/api/orders', async (req, res) => {
   try {
     const db = await getMongoDatabase();
     if (db) {
-      const orders = await db.collection('orders').find({}).sort({ createdAt: -1 }).toArray();
+      const rawOrders = await db.collection('orders').find({}).sort({ createdAt: -1 }).toArray();
+      const orders = rawOrders.map(o => cleanMongoPayload(o));
       return res.json({ success: true, source: 'mongodb_atlas', orders });
     }
   } catch (err) {
@@ -993,10 +1009,11 @@ app.post('/api/orders', async (req, res) => {
   try {
     const db = await getMongoDatabase();
     if (db) {
-      order.savedAt = new Date();
+      const orderPayload = cleanMongoPayload(order);
+      orderPayload.savedAt = new Date();
       await db.collection('orders').updateOne(
         { id: order.id },
-        { $set: order },
+        { $set: orderPayload },
         { upsert: true }
       );
       return res.json({ success: true, source: 'mongodb_atlas', id: order.id });
@@ -1027,14 +1044,16 @@ app.post('/api/db/sync', async (req, res) => {
     if (Array.isArray(products) && products.length > 0) {
       for (const p of products) {
         const cleanProduct = sanitizeProductImageLinks(p);
-        await db.collection('products').updateOne({ id: cleanProduct.id }, { $set: cleanProduct }, { upsert: true });
+        const updateData = cleanMongoPayload(cleanProduct);
+        await db.collection('products').updateOne({ id: cleanProduct.id }, { $set: updateData }, { upsert: true });
       }
       productsCount = products.length;
     }
 
     if (Array.isArray(orders) && orders.length > 0) {
       for (const o of orders) {
-        await db.collection('orders').updateOne({ id: o.id }, { $set: o }, { upsert: true });
+        const updateData = cleanMongoPayload(o);
+        await db.collection('orders').updateOne({ id: o.id }, { $set: updateData }, { upsert: true });
       }
       ordersCount = orders.length;
     }
@@ -1042,12 +1061,14 @@ app.post('/api/db/sync', async (req, res) => {
     if (Array.isArray(banners) && banners.length > 0) {
       for (const b of banners) {
         const cleanBanner = { ...b, imageUrl: saveBase64Image(b.imageUrl, 'banner') };
-        await db.collection('banners').updateOne({ id: cleanBanner.id }, { $set: cleanBanner }, { upsert: true });
+        const updateData = cleanMongoPayload(cleanBanner);
+        await db.collection('banners').updateOne({ id: cleanBanner.id }, { $set: updateData }, { upsert: true });
       }
     }
 
     if (settings) {
-      await db.collection('settings').updateOne({ key: 'store_settings' }, { $set: settings }, { upsert: true });
+      const updateData = cleanMongoPayload(settings);
+      await db.collection('settings').updateOne({ key: 'store_settings' }, { $set: updateData }, { upsert: true });
     }
 
     return res.json({

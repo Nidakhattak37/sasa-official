@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import { Plus, Edit, Trash2, X, Sparkles, Image as ImageIcon, Layers, Check, Watch, Footprints, ShoppingBag, Gem, Flower2, Shirt } from 'lucide-react';
 
 interface CategoryPreset {
@@ -313,7 +314,13 @@ export const AdminCategories: React.FC = () => {
         {categories.map(cat => (
           <div key={cat.id} className="bg-white border border-[#EAE4DC] rounded-xl overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition">
             <div className="relative aspect-[16/9] bg-white">
-              <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+              <img
+                src={normalizeImageUrl(cat.image)}
+                alt={cat.name}
+                referrerPolicy="no-referrer"
+                onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                className="w-full h-full object-cover"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
               <div className="absolute bottom-3 left-4 right-4 text-white">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#D4AF37] block">

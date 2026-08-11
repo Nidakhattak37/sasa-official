@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { uploadImageFile } from '../../utils/imageStorage';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import {
   Plus, Trash2, Image as ImageIcon, X, Upload, Save, CheckCircle, Sparkles, LayoutGrid, Layers, HardDrive, Database
 } from 'lucide-react';
@@ -275,8 +276,10 @@ export const AdminBanners: React.FC = () => {
                   <span className="text-[10px] uppercase font-bold text-gray-400">Live Photo Preview</span>
                   <div className="relative aspect-[4/3] rounded-lg overflow-hidden border bg-gray-200">
                     <img
-                      src={icData.imageUrl || "/images/sky_blue_chikankari.jpg"}
+                      src={normalizeImageUrl(icData.imageUrl || "/images/sky_blue_chikankari.jpg")}
                       alt="Instant Classics Preview"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
                       className="w-full h-full object-cover object-center"
                     />
                   </div>
@@ -426,7 +429,13 @@ export const AdminBanners: React.FC = () => {
                   />
                   {deData.left.imageUrl && (
                     <div className="relative aspect-[16/9] rounded border overflow-hidden">
-                      <img src={deData.left.imageUrl} alt="Left Preview" className="w-full h-full object-cover" />
+                      <img
+                        src={normalizeImageUrl(deData.left.imageUrl)}
+                        alt="Left Preview"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   )}
                 </div>
@@ -545,7 +554,13 @@ export const AdminBanners: React.FC = () => {
                   />
                   {deData.right.imageUrl && (
                     <div className="relative aspect-[16/9] rounded border overflow-hidden">
-                      <img src={deData.right.imageUrl} alt="Right Preview" className="w-full h-full object-cover" />
+                      <img
+                        src={normalizeImageUrl(deData.right.imageUrl)}
+                        alt="Right Preview"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   )}
                 </div>
@@ -602,7 +617,13 @@ export const AdminBanners: React.FC = () => {
               {banners.map(b => (
                 <div key={b.id} className="bg-white border border-[#EAE4DC] rounded-xl overflow-hidden shadow-sm space-y-3">
                   <div className="relative aspect-[16/9] bg-gray-100">
-                    <img src={b.imageUrl} alt={b.title} className="w-full h-full object-cover" />
+                    <img
+                      src={normalizeImageUrl(b.imageUrl)}
+                      alt={b.title}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                      className="w-full h-full object-cover"
+                    />
                     <div className="absolute inset-0 bg-black/40 flex flex-col justify-end p-6 text-white">
                       <span className="text-[10px] uppercase tracking-widest text-[#D4AF37] font-semibold">{b.subtitle}</span>
                       <h3 className="font-serif text-2xl font-bold">{b.title}</h3>
@@ -693,7 +714,13 @@ export const AdminBanners: React.FC = () => {
 
                   {imageUrl && (
                     <div className="relative aspect-[21/9] rounded-lg overflow-hidden border border-[#EAE4DC]">
-                      <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <img
+                        src={normalizeImageUrl(imageUrl)}
+                        alt="Preview"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   )}
                 </div>

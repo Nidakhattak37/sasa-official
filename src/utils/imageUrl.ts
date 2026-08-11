@@ -1,3 +1,5 @@
+import React from 'react';
+
 /**
  * Resilient Image URL Normalizer and Fallback Resolver
  * 

@@ -5,6 +5,7 @@ import { Header } from '../../components/storefront/Header';
 import { Footer } from '../../components/storefront/Footer';
 import { ProductCard } from '../../components/storefront/ProductCard';
 import { formatPrice } from '../../utils/currency';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import { User, Package, Heart, MapPin, RefreshCw, LogOut, CheckCircle2, ChevronRight, Shield } from 'lucide-react';
 
 export const AccountView: React.FC = () => {
@@ -160,7 +161,13 @@ export const AccountView: React.FC = () => {
                             {ord.items.map((item, idx) => (
                               <div key={idx} className="flex justify-between items-center text-xs">
                                 <div className="flex items-center space-x-3">
-                                  <img src={item.image} alt="" className="w-10 h-12 object-cover rounded bg-[#F5F1EC]" />
+                                  <img
+                                    src={normalizeImageUrl(item.image)}
+                                    alt=""
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                                    className="w-10 h-12 object-cover rounded bg-[#F5F1EC]"
+                                  />
                                   <div>
                                     <span className="font-semibold text-[#222]">{item.productName}</span>
                                     <p className="text-[10px] text-gray-500">Size: {item.selectedSize} • Qty: {item.quantity}</p>

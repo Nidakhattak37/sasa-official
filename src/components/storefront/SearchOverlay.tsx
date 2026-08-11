@@ -112,8 +112,10 @@ export const SearchOverlay: React.FC = () => {
                   >
                     <div className="flex items-center space-x-4">
                       <img
-                        src={product.images[0]}
+                        src={normalizeImageUrl(product.images?.[0])}
                         alt={product.name}
+                        referrerPolicy="no-referrer"
+                        onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
                         className="w-14 h-16 object-cover rounded bg-[#F5F1EC]"
                       />
                       <div>

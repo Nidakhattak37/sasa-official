@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Product } from '../../types';
 import { formatPrice } from '../../utils/currency';
 import { uploadImageFile } from '../../utils/imageStorage';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import { Plus, Edit, Trash2, Copy, Search, Sparkles, X, Check, Eye, Upload, Image as ImageIcon, Star, Layers, Watch, Footprints, Tag, Loader2, HardDrive, Database, Link as LinkIcon } from 'lucide-react';
 
 const COLLECTION_TYPES = [
@@ -344,7 +345,13 @@ export const AdminProducts: React.FC = () => {
               filtered.map(p => (
                 <tr key={p.id} className="hover:bg-[#FBF9F5] transition bg-white">
                   <td className="p-3 font-semibold text-[#222] flex items-center space-x-3">
-                    <img src={p.images[0] || '/images/sky_blue_chikankari.jpg'} alt="" className="w-10 h-12 object-cover rounded-lg bg-white border border-[#EAE4DC]" />
+                    <img
+                      src={normalizeImageUrl(p.images?.[0] || '/images/sky_blue_chikankari.jpg')}
+                      alt=""
+                      referrerPolicy="no-referrer"
+                      onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                      className="w-10 h-12 object-cover rounded-lg bg-white border border-[#EAE4DC]"
+                    />
                     <div>
                       <span className="block font-serif text-sm text-[#222]">{p.name}</span>
                       <span className="text-[10px] text-gray-400">{p.fabricDetails}</span>
@@ -381,7 +388,14 @@ export const AdminProducts: React.FC = () => {
                   <td className="p-3">
                     <div className="flex -space-x-1 overflow-hidden">
                       {p.images.slice(0, 3).map((img, idx) => (
-                        <img key={idx} src={img} alt="" className="inline-block h-6 w-6 rounded-full ring-1 ring-white object-cover shadow-2xs" />
+                        <img
+                          key={idx}
+                          src={normalizeImageUrl(img, idx)}
+                          alt=""
+                          referrerPolicy="no-referrer"
+                          onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                          className="inline-block h-6 w-6 rounded-full ring-1 ring-white object-cover shadow-2xs"
+                        />
                       ))}
                       {p.images.length > 3 && (
                         <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-[9px] font-medium text-gray-600">
@@ -814,7 +828,13 @@ export const AdminProducts: React.FC = () => {
                       return (
                         <div key={index} className="flex flex-col gap-1">
                           <div className="relative group aspect-[3/4] bg-white rounded-lg border border-[#EAE4DC] overflow-hidden shadow-sm">
-                            <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                            <img
+                              src={normalizeImageUrl(imgUrl, index)}
+                              alt=""
+                              referrerPolicy="no-referrer"
+                              onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                              className="w-full h-full object-cover"
+                            />
                             
                             {/* Primary Badge */}
                             {index === 0 ? (

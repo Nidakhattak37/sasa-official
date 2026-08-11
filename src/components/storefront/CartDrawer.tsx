@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { formatPrice } from '../../utils/currency';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import { X, Trash2, ShoppingBag, ArrowRight, Tag, Truck, Check } from 'lucide-react';
 
 export const CartDrawer: React.FC = () => {
@@ -125,8 +126,10 @@ export const CartDrawer: React.FC = () => {
                   
                   {/* Item Image */}
                   <img
-                    src={item.product.images[0]}
+                    src={normalizeImageUrl(item.product.images?.[0])}
                     alt={item.product.name}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
                     className="w-20 h-24 object-cover rounded bg-[#F5F1EC] flex-shrink-0"
                   />
 

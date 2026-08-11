@@ -4,6 +4,7 @@ import { AnnouncementBar } from '../../components/storefront/AnnouncementBar';
 import { Header } from '../../components/storefront/Header';
 import { Footer } from '../../components/storefront/Footer';
 import { formatPrice } from '../../utils/currency';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import { ShippingAddress, PaymentMethod } from '../../types';
 import { ShieldCheck, Lock, CreditCard, Banknote, CheckCircle, ArrowRight } from 'lucide-react';
 
@@ -346,8 +347,10 @@ export const CheckoutView: React.FC = () => {
                     <div key={idx} className="pt-3 first:pt-0 flex items-center justify-between text-xs">
                       <div className="flex items-center space-x-3">
                         <img
-                          src={item.product.images[0]}
+                          src={normalizeImageUrl(item.product.images?.[0])}
                           alt={item.product.name}
+                          referrerPolicy="no-referrer"
+                          onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
                           className="w-12 h-14 object-cover rounded bg-[#F5F1EC]"
                         />
                         <div>

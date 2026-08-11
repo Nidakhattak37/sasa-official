@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { formatPrice } from '../../utils/currency';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import { AlertTriangle, CheckCircle, RefreshCw, Search, ShieldAlert } from 'lucide-react';
 
 export const AdminInventory: React.FC = () => {
@@ -69,7 +70,13 @@ export const AdminInventory: React.FC = () => {
               <tr key={p.id} className="hover:bg-[#FAFAFA]">
                 <td className="p-3 font-mono text-[11px] text-gray-500">{p.sku}</td>
                 <td className="p-3 font-semibold text-[#222] flex items-center space-x-3">
-                  <img src={p.images[0]} alt="" className="w-8 h-10 object-cover rounded bg-[#F5F1EC]" />
+                  <img
+                    src={normalizeImageUrl(p.images?.[0])}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                    className="w-8 h-10 object-cover rounded bg-[#F5F1EC]"
+                  />
                   <span>{p.name}</span>
                 </td>
                 <td className="p-3 font-bold">{formatPrice(p.price, currency)}</td>

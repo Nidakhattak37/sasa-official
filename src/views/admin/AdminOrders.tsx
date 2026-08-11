@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Order, OrderStatus } from '../../types';
 import { formatPrice } from '../../utils/currency';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import { PrintInvoiceModal } from './PrintInvoiceModal';
 import { Search, Printer, Eye, ChevronDown, CheckCircle2, Clock, Truck, X } from 'lucide-react';
 
@@ -166,7 +167,13 @@ export const AdminOrders: React.FC = () => {
                 {viewingOrderDetails.items.map((it, idx) => (
                   <div key={idx} className="py-2 flex justify-between items-center">
                     <div className="flex items-center space-x-3">
-                      <img src={it.image} alt="" className="w-10 h-12 object-cover rounded bg-[#F5F1EC]" />
+                      <img
+                        src={normalizeImageUrl(it.image)}
+                        alt=""
+                        referrerPolicy="no-referrer"
+                        onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                        className="w-10 h-12 object-cover rounded bg-[#F5F1EC]"
+                      />
                       <div>
                         <strong className="text-[#222]">{it.productName}</strong>
                         <p className="text-[10px] text-gray-500">Size: {it.selectedSize} • Qty: {it.quantity}</p>

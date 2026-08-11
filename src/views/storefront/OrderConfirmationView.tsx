@@ -4,6 +4,7 @@ import { AnnouncementBar } from '../../components/storefront/AnnouncementBar';
 import { Header } from '../../components/storefront/Header';
 import { Footer } from '../../components/storefront/Footer';
 import { formatPrice } from '../../utils/currency';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import { CheckCircle2, Truck, Package, ArrowRight, Printer } from 'lucide-react';
 
 export const OrderConfirmationView: React.FC = () => {
@@ -70,7 +71,13 @@ export const OrderConfirmationView: React.FC = () => {
                 {lastOrder.items.map((item, idx) => (
                   <div key={idx} className="py-2 flex items-center justify-between text-xs">
                     <div className="flex items-center space-x-3">
-                      <img src={item.image} alt={item.productName} className="w-10 h-12 object-cover rounded bg-[#F5F1EC]" />
+                      <img
+                        src={normalizeImageUrl(item.image)}
+                        alt={item.productName}
+                        referrerPolicy="no-referrer"
+                        onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                        className="w-10 h-12 object-cover rounded bg-[#F5F1EC]"
+                      />
                       <div>
                         <strong className="text-[#222]">{item.productName}</strong>
                         <p className="text-[10px] text-[#777]">Size: {item.selectedSize} • Color: {item.selectedColor} • Qty: {item.quantity}</p>

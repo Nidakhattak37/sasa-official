@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { formatPrice } from '../../utils/currency';
+import { normalizeImageUrl, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../../utils/imageUrl';
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend
 } from 'recharts';
@@ -139,7 +140,13 @@ export const AdminAnalytics: React.FC = () => {
                 {products.slice(0, 5).map((prod) => (
                   <tr key={prod.id} className="hover:bg-[#FAFAFA]">
                     <td className="p-3 font-semibold text-[#222] flex items-center space-x-3">
-                      <img src={prod.images[0]} alt="" className="w-8 h-10 object-cover rounded bg-[#F5F1EC]" />
+                      <img
+                        src={normalizeImageUrl(prod.images?.[0])}
+                        alt=""
+                        referrerPolicy="no-referrer"
+                        onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                        className="w-8 h-10 object-cover rounded bg-[#F5F1EC]"
+                      />
                       <span>{prod.name}</span>
                     </td>
                     <td className="p-3 text-gray-600">{prod.category}</td>
