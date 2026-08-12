@@ -126,7 +126,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateTab })
                 {orders.slice(0, 5).map(ord => (
                   <tr key={ord.id} className="hover:bg-[#FAFAFA]">
                     <td className="p-3 font-bold text-[#9E8055] font-mono">#{ord.id}</td>
-                    <td className="p-3 font-semibold text-[#222]">{ord.shippingAddress.fullName}</td>
+                    <td className="p-3 font-semibold text-[#222]">{ord.customerName || ord.shippingAddress?.fullName || 'Guest Customer'}</td>
                     <td className="p-3 text-gray-500">{ord.createdAt}</td>
                     <td className="p-3 font-bold text-[#222]">{formatPrice(ord.total, currency)}</td>
                     <td className="p-3 text-gray-600">{ord.paymentMethod}</td>

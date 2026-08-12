@@ -115,15 +115,15 @@ export const AdminReports: React.FC = () => {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchId = o.id.toLowerCase().includes(q);
-      const matchName = o.shippingAddress?.fullName?.toLowerCase().includes(q);
-      const matchPhone = o.shippingAddress?.phone?.toLowerCase().includes(q);
+      const matchName = (o.customerName || o.shippingAddress?.fullName || '').toLowerCase().includes(q);
+      const matchPhone = (o.phone || o.shippingAddress?.phone || '').toLowerCase().includes(q);
       if (!matchId && !matchName && !matchPhone) return false;
     }
     return true;
   });
 
   const ordersTotalCount = filteredOrders.length;
-  const ordersTotalRevenue = filteredOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  const ordersTotalRevenue = filteredOrders.reduce((sum, o) => sum + (o.total || o.subtotal || 0), 0);
   const ordersAvgValue = ordersTotalCount > 0 ? Math.round(ordersTotalRevenue / ordersTotalCount) : 0;
   const ordersDeliveredCount = filteredOrders.filter(o => o.orderStatus === 'Delivered').length;
 
@@ -132,12 +132,12 @@ export const AdminReports: React.FC = () => {
     const rows = filteredOrders.map(o => [
       o.id,
       o.createdAt ? o.createdAt.slice(0, 10) : 'N/A',
-      o.shippingAddress?.fullName || 'Guest Customer',
-      o.shippingAddress?.phone || 'N/A',
+      o.customerName || o.shippingAddress?.fullName || 'Guest Customer',
+      o.phone || o.shippingAddress?.phone || 'N/A',
       o.items?.map(i => `${i.productName} (x${i.quantity})`).join(', ') || 'N/A',
       o.orderStatus,
       o.paymentStatus,
-      `PKR ${o.totalAmount.toLocaleString()}`
+      `PKR ${(o.total || o.subtotal || 0).toLocaleString()}`
     ]);
 
     generatePDFReport({
@@ -161,14 +161,14 @@ export const AdminReports: React.FC = () => {
     const rows = filteredOrders.map(o => [
       o.id,
       o.createdAt,
-      o.shippingAddress?.fullName || 'Guest',
-      o.shippingAddress?.phone || '',
+      o.customerName || o.shippingAddress?.fullName || 'Guest',
+      o.phone || o.shippingAddress?.phone || '',
       o.shippingAddress?.city || '',
       o.items?.map(i => `${i.productName} x${i.quantity}`).join('; ') || '',
-      o.subtotal || o.totalAmount,
-      o.discountAmount || 0,
+      o.subtotal || o.total || 0,
+      o.discount || 0,
       o.shippingFee || 0,
-      o.totalAmount,
+      o.total || o.subtotal || 0,
       o.paymentMethod || 'COD',
       o.paymentStatus,
       o.orderStatus
@@ -190,10 +190,10 @@ export const AdminReports: React.FC = () => {
 
   // 2. SALES REPORT LOGIC
   const validSalesOrders = filteredOrders.filter(o => o.orderStatus !== 'Cancelled');
-  const totalGrossSales = validSalesOrders.reduce((acc, o) => acc + (o.subtotal || o.totalAmount), 0);
-  const totalDiscounts = validSalesOrders.reduce((acc, o) => acc + (o.discountAmount || 0), 0);
+  const totalGrossSales = validSalesOrders.reduce((acc, o) => acc + (o.subtotal || o.total || 0), 0);
+  const totalDiscounts = validSalesOrders.reduce((acc, o) => acc + (o.discount || 0), 0);
   const totalShipping = validSalesOrders.reduce((acc, o) => acc + (o.shippingFee || 0), 0);
-  const totalNetSales = validSalesOrders.reduce((acc, o) => acc + o.totalAmount, 0);
+  const totalNetSales = validSalesOrders.reduce((acc, o) => acc + (o.total || 0), 0);
 
   // Product level sales map
   const productSalesMap = new Map<string, { id: string; name: string; sku: string; category: string; qty: number; revenue: number }>();
@@ -812,10 +812,10 @@ export const AdminReports: React.FC = () => {
                           {o.createdAt ? o.createdAt.slice(0, 16) : 'N/A'}
                         </td>
                         <td className="p-3.5 font-medium text-gray-900">
-                          {o.shippingAddress?.fullName || 'Guest Customer'}
+                          {o.customerName || o.shippingAddress?.fullName || 'Guest Customer'}
                         </td>
                         <td className="p-3.5 text-gray-500 font-mono text-[11px]">
-                          {o.shippingAddress?.phone || 'N/A'}
+                          {o.phone || o.shippingAddress?.phone || 'N/A'}
                         </td>
                         <td className="p-3.5 max-w-xs truncate text-gray-600">
                           {o.items?.map(i => `${i.productName} (x${i.quantity})`).join(', ') || 'N/A'}
@@ -836,7 +836,7 @@ export const AdminReports: React.FC = () => {
                           </span>
                         </td>
                         <td className="p-3.5 text-right font-bold font-mono text-gray-900">
-                          PKR {o.totalAmount.toLocaleString()}
+                          PKR {(o.total || o.subtotal || 0).toLocaleString()}
                         </td>
                       </tr>
                     ))
