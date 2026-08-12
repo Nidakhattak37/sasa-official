@@ -999,7 +999,29 @@ app.get('/api/products', async (req, res) => {
   return res.json({ success: true, source: 'local', products: [] });
 });
 
-// POST /api/products: Save or update product in MongoDB Atlas with clean image links
+// Helper: Log inventory transaction into MongoDB
+async function recordInventoryTransaction(db, { productId, productName, sku, type, qtyIn, qtyOut, balance, note }) {
+  if (!db) return;
+  try {
+    const tx = {
+      id: `tx-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      date: new Date().toISOString(),
+      productId,
+      productName: productName || 'Product',
+      sku: sku || 'N/A',
+      type: type || 'Adjustment', // Opening Stock, Stock Added, Sale, Return, Adjustment, Damage, Cancellation
+      qtyIn: Number(qtyIn) || 0,
+      qtyOut: Number(qtyOut) || 0,
+      balance: Number(balance) || 0,
+      note: note || ''
+    };
+    await db.collection('inventory_transactions').insertOne(tx);
+  } catch (err) {
+    console.warn('[INVENTORY LEDGER RECORD ERROR]', err.message);
+  }
+}
+
+// POST /api/products: Save or update product in MongoDB Atlas with clean image links and auto ledger log
 app.post('/api/products', async (req, res) => {
   const { product } = req.body || {};
   if (!product || !product.id) {
@@ -1009,16 +1031,48 @@ app.post('/api/products', async (req, res) => {
   // Ensure all images are stored on website file storage, returning clean URL links for MongoDB
   const cleanProduct = sanitizeProductImageLinks(product);
   cleanProduct.updatedAt = new Date();
+  if (cleanProduct.isActive === undefined) {
+    cleanProduct.isActive = true;
+  }
 
   try {
     const db = await getMongoDatabase();
     if (db) {
+      const existing = await db.collection('products').findOne({ id: cleanProduct.id });
       const updateData = cleanMongoPayload(cleanProduct);
+
       await db.collection('products').updateOne(
         { id: cleanProduct.id },
         { $set: updateData },
         { upsert: true }
       );
+
+      // Automatic Inventory Ledger entry
+      if (!existing) {
+        await recordInventoryTransaction(db, {
+          productId: cleanProduct.id,
+          productName: cleanProduct.name,
+          sku: cleanProduct.sku,
+          type: 'Opening Stock',
+          qtyIn: cleanProduct.stock || 0,
+          qtyOut: 0,
+          balance: cleanProduct.stock || 0,
+          note: 'Initial Product Creation'
+        });
+      } else if (existing.stock !== cleanProduct.stock) {
+        const diff = (cleanProduct.stock || 0) - (existing.stock || 0);
+        await recordInventoryTransaction(db, {
+          productId: cleanProduct.id,
+          productName: cleanProduct.name,
+          sku: cleanProduct.sku,
+          type: diff > 0 ? 'Stock Added' : 'Adjustment',
+          qtyIn: diff > 0 ? diff : 0,
+          qtyOut: diff < 0 ? Math.abs(diff) : 0,
+          balance: cleanProduct.stock || 0,
+          note: `Admin Stock Adjustment (${existing.stock} → ${cleanProduct.stock})`
+        });
+      }
+
       return res.json({
         success: true,
         source: 'mongodb_atlas',
@@ -1038,13 +1092,70 @@ app.post('/api/products', async (req, res) => {
   });
 });
 
-// DELETE /api/products/:id: Delete product from MongoDB Atlas
-app.delete('/api/products/:id', async (req, res) => {
+// PUT /api/products/:id: Incremental update of single product
+app.put('/api/products/:id', async (req, res) => {
   const { id } = req.params;
+  const { product } = req.body || {};
+  if (!product) {
+    return res.status(400).json({ success: false, message: 'Missing product payload' });
+  }
+
+  const cleanProduct = sanitizeProductImageLinks({ ...product, id });
+  cleanProduct.updatedAt = new Date();
+
   try {
     const db = await getMongoDatabase();
     if (db) {
-      await db.collection('products').deleteOne({ id });
+      const existing = await db.collection('products').findOne({ id });
+      const updateData = cleanMongoPayload(cleanProduct);
+
+      await db.collection('products').updateOne(
+        { id },
+        { $set: updateData },
+        { upsert: true }
+      );
+
+      if (existing && existing.stock !== cleanProduct.stock) {
+        const diff = (cleanProduct.stock || 0) - (existing.stock || 0);
+        await recordInventoryTransaction(db, {
+          productId: id,
+          productName: cleanProduct.name,
+          sku: cleanProduct.sku,
+          type: diff > 0 ? 'Stock Added' : 'Adjustment',
+          qtyIn: diff > 0 ? diff : 0,
+          qtyOut: diff < 0 ? Math.abs(diff) : 0,
+          balance: cleanProduct.stock || 0,
+          note: `Product Edit (${existing.stock} → ${cleanProduct.stock})`
+        });
+      }
+
+      return res.json({
+        success: true,
+        source: 'mongodb_atlas',
+        product: cleanProduct
+      });
+    }
+  } catch (err) {
+    console.warn('[MONGODB PRODUCT UPDATE ERROR]', err.message);
+  }
+
+  return res.json({ success: true, source: 'local_fallback', product: cleanProduct });
+});
+
+// DELETE /api/products/:id: Delete or soft-delete product from MongoDB Atlas
+app.delete('/api/products/:id', async (req, res) => {
+  const { id } = req.params;
+  const { permanent } = req.query;
+
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      if (permanent === 'true') {
+        await db.collection('products').deleteOne({ id });
+      } else {
+        // Soft-delete to preserve historical orders
+        await db.collection('products').updateOne({ id }, { $set: { isActive: false, updatedAt: new Date() } });
+      }
       return res.json({ success: true, source: 'mongodb_atlas', id });
     }
   } catch (err) {
@@ -1068,7 +1179,7 @@ app.get('/api/orders', async (req, res) => {
   return res.json({ success: true, source: 'local', orders: [] });
 });
 
-// POST /api/orders: Save order directly into MongoDB Atlas
+// POST /api/orders: Save order directly into MongoDB Atlas + automatically reduce stock & record ledger
 app.post('/api/orders', async (req, res) => {
   const { order } = req.body || {};
   if (!order) {
@@ -1080,11 +1191,38 @@ app.post('/api/orders', async (req, res) => {
     if (db) {
       const orderPayload = cleanMongoPayload(order);
       orderPayload.savedAt = new Date();
+
+      const existingOrder = await db.collection('orders').findOne({ id: order.id });
+
       await db.collection('orders').updateOne(
         { id: order.id },
         { $set: orderPayload },
         { upsert: true }
       );
+
+      // Automatic Inventory Deduction for NEW Orders
+      if (!existingOrder && Array.isArray(order.items)) {
+        for (const item of order.items) {
+          const p = await db.collection('products').findOne({ $or: [{ id: item.productId }, { sku: item.sku }] });
+          if (p) {
+            const qty = Number(item.quantity) || 1;
+            const newStock = Math.max(0, (p.stock || 0) - qty);
+            await db.collection('products').updateOne({ id: p.id }, { $set: { stock: newStock } });
+
+            await recordInventoryTransaction(db, {
+              productId: p.id,
+              productName: p.name,
+              sku: p.sku,
+              type: 'Sale',
+              qtyIn: 0,
+              qtyOut: qty,
+              balance: newStock,
+              note: `Customer Sale - Order #${order.id}`
+            });
+          }
+        }
+      }
+
       return res.json({ success: true, source: 'mongodb_atlas', id: order.id });
     }
   } catch (err) {
@@ -1092,6 +1230,94 @@ app.post('/api/orders', async (req, res) => {
   }
 
   return res.json({ success: true, source: 'local_fallback', id: order.id });
+});
+
+// PUT /api/orders/:id/status: Update order status & automatically handle cancellations/returns
+app.put('/api/orders/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status, paymentStatus, adminNote } = req.body || {};
+
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const existingOrder = await db.collection('orders').findOne({ id });
+      if (existingOrder) {
+        const prevStatus = existingOrder.orderStatus;
+        const updateFields = {
+          orderStatus: status || prevStatus,
+          updatedAt: new Date()
+        };
+        if (paymentStatus) updateFields.paymentStatus = paymentStatus;
+        if (adminNote !== undefined) updateFields.adminNotes = adminNote;
+
+        await db.collection('orders').updateOne({ id }, { $set: updateFields });
+
+        // If order changed to Cancelled or Returned, restock inventory and log ledger
+        if ((status === 'Cancelled' || status === 'Returned') && prevStatus !== 'Cancelled' && prevStatus !== 'Returned') {
+          if (Array.isArray(existingOrder.items)) {
+            for (const item of existingOrder.items) {
+              const p = await db.collection('products').findOne({ $or: [{ id: item.productId }, { sku: item.sku }] });
+              if (p) {
+                const qty = Number(item.quantity) || 1;
+                const newStock = (p.stock || 0) + qty;
+                await db.collection('products').updateOne({ id: p.id }, { $set: { stock: newStock } });
+
+                await recordInventoryTransaction(db, {
+                  productId: p.id,
+                  productName: p.name,
+                  sku: p.sku,
+                  type: status === 'Cancelled' ? 'Cancellation' : 'Return',
+                  qtyIn: qty,
+                  qtyOut: 0,
+                  balance: newStock,
+                  note: `Order #${id} ${status} - Restocked`
+                });
+              }
+            }
+          }
+        }
+
+        return res.json({ success: true, source: 'mongodb_atlas', id, status });
+      }
+    }
+  } catch (err) {
+    console.warn('[MONGODB ORDER STATUS UPDATE ERROR]', err.message);
+  }
+
+  return res.json({ success: true, source: 'local_fallback', id, status });
+});
+
+// GET /api/inventory/transactions: Retrieve full inventory ledger history
+app.get('/api/inventory/transactions', async (req, res) => {
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const transactions = await db.collection('inventory_transactions').find({}).sort({ date: -1 }).toArray();
+      const cleanTx = transactions.map(t => cleanMongoPayload(t));
+      return res.json({ success: true, source: 'mongodb_atlas', transactions: cleanTx });
+    }
+  } catch (err) {
+    console.warn('[MONGODB LEDGER FETCH ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local', transactions: [] });
+});
+
+// POST /api/inventory/transactions: Manually record an inventory ledger transaction
+app.post('/api/inventory/transactions', async (req, res) => {
+  const { transaction } = req.body || {};
+  if (!transaction) return res.status(400).json({ success: false, message: 'Missing transaction object' });
+
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      await recordInventoryTransaction(db, transaction);
+      return res.json({ success: true, source: 'mongodb_atlas' });
+    }
+  } catch (err) {
+    console.warn('[MONGODB LEDGER SAVE ERROR]', err.message);
+  }
+
+  return res.json({ success: true, source: 'local_fallback' });
 });
 
 // POST /api/db/sync: Seed or sync products, orders, and settings to MongoDB Atlas

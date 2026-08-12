@@ -16,7 +16,17 @@ import {
 } from 'lucide-react';
 
 export const ShopView: React.FC = () => {
-  const { products, categories, selectedCategorySlug, setSelectedCategorySlug, setCurrentView } = useApp();
+  const {
+    products,
+    categories,
+    selectedCategorySlug,
+    setSelectedCategorySlug,
+    selectedSubcategory,
+    selectedCollectionName,
+    selectedCustomProductIds,
+    activeMenuFilterTitle,
+    setCurrentView
+  } = useApp();
 
   const [selectedFabric, setSelectedFabric] = useState<string>('all');
   const [selectedCollectionType, setSelectedCollectionType] = useState<string>('all');
@@ -59,23 +69,58 @@ export const ShopView: React.FC = () => {
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-      // Category filter
-      if (selectedCategorySlug && selectedCategorySlug !== 'all') {
-        if (selectedCategorySlug === 'new-arrivals' && !p.isNewArrival) return false;
-        if (selectedCategorySlug === 'sale' && !p.isSale) return false;
-        if (selectedCategorySlug !== 'new-arrivals' && selectedCategorySlug !== 'sale') {
-          const matchCat = p.category.toLowerCase().replace(/\s+/g, '-') === selectedCategorySlug;
+      // 1. Sale Menu Filtering - ONLY show products that are actively on sale/discounted
+      if (selectedCategorySlug === 'sale') {
+        const isOnSale = p.isSale === true || (typeof p.originalPrice === 'number' && p.originalPrice > p.price);
+        if (!isOnSale) return false;
+      }
+
+      // 2. Collection Menu Filtering
+      else if (selectedCategorySlug === 'collection') {
+        if (selectedCustomProductIds && selectedCustomProductIds.length > 0) {
+          if (!selectedCustomProductIds.includes(p.id)) return false;
+        } else if (selectedCollectionName && selectedCollectionName !== 'all') {
+          const targetColl = selectedCollectionName.toLowerCase();
+          const pColl = (p.collectionType || p.collection || '').toLowerCase();
+          const pSeason = (p.season || '').toLowerCase();
+          const pName = p.name.toLowerCase();
+          const isMatch = pColl.includes(targetColl.slice(0, 5)) || pSeason.includes(targetColl.slice(0, 5)) || pName.includes(targetColl);
+          if (!isMatch) return false;
+        }
+      }
+
+      // 3. Regular Category Filtering
+      else if (selectedCategorySlug && selectedCategorySlug !== 'all') {
+        if (selectedCategorySlug === 'new-arrivals') {
+          if (!p.isNewArrival) return false;
+        } else {
+          const catSlug = selectedCategorySlug.toLowerCase();
+          const pCatSlug = p.category.toLowerCase().replace(/\s+/g, '-');
+          const pCatName = p.category.toLowerCase();
+          const matchCat = pCatSlug === catSlug || pCatName === catSlug || pCatSlug.includes(catSlug) || catSlug.includes(pCatSlug);
           if (!matchCat) return false;
         }
       }
 
-      // Collection Type (Season) filter
+      // 4. Subcategory Filter (if specified)
+      if (selectedSubcategory && selectedSubcategory !== 'all') {
+        const pSub = (p.subcategory || '').toLowerCase();
+        const pSubSlug = pSub.replace(/\s+/g, '-');
+        const pName = p.name.toLowerCase();
+        const targetSub = selectedSubcategory.toLowerCase();
+        const targetSubSlug = targetSub.replace(/\s+/g, '-');
+        
+        const isSubMatch = pSub === targetSub || pSubSlug === targetSubSlug || pSub.includes(targetSub) || pName.includes(targetSub);
+        if (!isSubMatch) return false;
+      }
+
+      // Collection Type (Season) filter dropdown
       if (selectedCollectionType !== 'all') {
         const pColl = (p.collectionType || p.collection || '').toLowerCase();
         if (!pColl.includes(selectedCollectionType.toLowerCase().slice(0, 6))) return false;
       }
 
-      // Suit Composition / Piece Type filter (3 Piece, 2 Piece, 1 Piece, Shirt Dupatta, Shirt Shalwar)
+      // Suit Composition / Piece Type filter
       if (selectedPieceType !== 'all') {
         const pPiece = (p.pieceType || '').toLowerCase();
         const pName = p.name.toLowerCase();
@@ -115,7 +160,19 @@ export const ShopView: React.FC = () => {
       if (sortBy === 'rating') return b.rating - a.rating;
       return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
     });
-  }, [products, selectedCategorySlug, selectedCollectionType, selectedPieceType, selectedFabric, selectedSize, maxPrice, sortBy]);
+  }, [
+    products,
+    selectedCategorySlug,
+    selectedSubcategory,
+    selectedCollectionName,
+    selectedCustomProductIds,
+    selectedCollectionType,
+    selectedPieceType,
+    selectedFabric,
+    selectedSize,
+    maxPrice,
+    sortBy
+  ]);
 
   // Total pages and Paginated Products slice
   const totalPages = useMemo(() => {

@@ -15,6 +15,7 @@ import { AdminSettings } from './AdminSettings';
 import { AdminMenuSettings } from './AdminMenuSettings';
 import { AdminSalesCampaigns } from './AdminSalesCampaigns';
 import { AdminTeamManagement } from './AdminTeamManagement';
+import { AdminReports } from './AdminReports';
 import {
   LayoutDashboard, ShoppingBag, Package, Layers, AlertTriangle, Tag, MessageSquare, Image, FileText, Users, BarChart3, Settings, LogOut, Store, Bell, Menu, Percent, ShieldCheck
 } from 'lucide-react';
@@ -34,6 +35,7 @@ export const AdminLayout: React.FC = () => {
     { id: 'dashboard', label: 'Dashboard Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
     { id: 'orders', label: 'Order Fulfillment', icon: <ShoppingBag className="w-4 h-4" />, badge: pendingOrdersCount },
     { id: 'products', label: 'Product Inventory', icon: <Package className="w-4 h-4" /> },
+    { id: 'reports', label: 'Reports & Audits (PDF/Excel)', icon: <FileText className="w-4 h-4" /> },
     { id: 'sales', label: 'Sales & Discounts', icon: <Percent className="w-4 h-4" /> },
     { id: 'categories', label: 'Categories Architecture', icon: <Layers className="w-4 h-4" /> },
     { id: 'inventory', label: 'Stock & Warehouse', icon: <AlertTriangle className="w-4 h-4" />, badge: lowStockCount > 0 ? lowStockCount : null, badgeColor: 'bg-amber-500' },
@@ -194,6 +196,7 @@ export const AdminLayout: React.FC = () => {
           {activeTab === 'dashboard' && <AdminDashboard onNavigateTab={(tab) => setActiveTab(tab)} />}
           {activeTab === 'orders' && <AdminOrders />}
           {activeTab === 'products' && <AdminProducts />}
+          {activeTab === 'reports' && <AdminReports />}
           {activeTab === 'sales' && <AdminSalesCampaigns />}
           {activeTab === 'categories' && <AdminCategories />}
           {activeTab === 'inventory' && <AdminInventory />}

@@ -6,7 +6,7 @@ import { Footer } from '../../components/storefront/Footer';
 import { Mail, Phone, MapPin, CheckCircle, Instagram, ExternalLink } from 'lucide-react';
 
 export const CMSPageView: React.FC = () => {
-  const { currentView, cmsPages, settings } = useApp();
+  const { currentView, selectedCMSPageSlug, cmsPages, settings } = useApp();
 
   const instagramUrl = settings.instagramUrl || 'https://www.instagram.com/sasaofficial.pk?igsh=MXhhZmJwNzR1M3FucA==';
 
@@ -15,10 +15,12 @@ export const CMSPageView: React.FC = () => {
   const [contactMsg, setContactMsg] = useState('');
   const [sentSuccess, setSentSuccess] = useState(false);
 
-  const targetSlug = currentView === 'contact' ? 'contact' : currentView;
-  const pageData = cmsPages.find(p => p.slug === targetSlug) || {
-    title: currentView === 'contact' ? 'Contact SASA Official' : 'Store Information',
-    content: 'Welcome to SASA Official luxury fashion portal.'
+  const activeSlug = selectedCMSPageSlug || (currentView === 'contact' ? 'contact' : currentView);
+  const foundPage = cmsPages.find(p => p.slug === activeSlug);
+
+  const pageData = foundPage || {
+    title: activeSlug === 'contact' ? 'Contact SASA Official' : activeSlug === 'about' ? 'About SASA Official' : activeSlug === 'privacy-policy' ? 'Privacy Policy' : activeSlug === 'terms' ? 'Terms & Conditions' : activeSlug === 'shipping-policy' ? 'Shipping Policy' : 'Store Information',
+    content: 'Welcome to SASA Official luxury fashion portal. Handcrafted haute couture, unstitched lawn, and luxury formals.'
   };
 
   const handleContactSubmit = (e: React.FormEvent) => {

@@ -6,6 +6,11 @@ export const Header: React.FC = () => {
   const {
     currentView, setCurrentView,
     setSelectedCategorySlug,
+    setSelectedSubcategory,
+    setSelectedCollectionName,
+    setSelectedCustomProductIds,
+    setSelectedCMSPageSlug,
+    setActiveMenuFilterTitle,
     setIsSearchOpen,
     setIsCartDrawerOpen,
     cart, wishlist,
@@ -19,29 +24,77 @@ export const Header: React.FC = () => {
 
   const cartItemsCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  // Dynamic menu items from database / admin configuration
-  const activeMenuItems = (menuItems && menuItems.length > 0) ? menuItems : [
-    { id: 'm-1', label: 'Home', targetType: 'view', targetValue: 'home' },
-    { id: 'm-2', label: 'New Arrivals', targetType: 'category', targetValue: 'new-arrivals' },
-    { id: 'm-3', label: 'Pret', targetType: 'category', targetValue: 'pret' },
-    { id: 'm-4', label: 'Unstitched', targetType: 'category', targetValue: 'unstitched' },
-    { id: 'm-5', label: 'Contact', targetType: 'view', targetValue: 'contact' },
-  ];
+  // Dynamic menu items sorted by sortOrder, filtering out inactive items
+  const activeMenuItems = (menuItems && menuItems.length > 0) 
+    ? menuItems.filter(i => i.isActive !== false).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+    : [
+        { id: 'm-1', label: 'Home', targetType: 'view', targetValue: 'home', isActive: true, sortOrder: 1 },
+        { id: 'm-2', label: 'New Arrivals', targetType: 'category', targetValue: 'new-arrivals', categorySlug: 'new-arrivals', isActive: true, sortOrder: 2 },
+        { id: 'm-3', label: 'Pret', targetType: 'category', targetValue: 'pret', categorySlug: 'pret', isActive: true, sortOrder: 3 },
+        { id: 'm-4', label: 'Unstitched', targetType: 'category', targetValue: 'unstitched', categorySlug: 'unstitched', isActive: true, sortOrder: 4 },
+        { id: 'm-5', label: 'Sale', targetType: 'sale', targetValue: 'sale', isActive: true, sortOrder: 5, isBold: true, color: '#DC2626', badgeText: 'SALE', badgeColor: '#DC2626' },
+        { id: 'm-6', label: 'Contact', targetType: 'view', targetValue: 'contact', isActive: true, sortOrder: 6 },
+      ];
 
-  const handleMenuItemClick = (item: { targetType: string; targetValue: string }) => {
-    if (item.targetType === 'category') {
-      setSelectedCategorySlug(item.targetValue);
+  const handleMenuItemClick = (item: any) => {
+    // Clear previous specific filters
+    setSelectedSubcategory(null);
+    setSelectedCollectionName(null);
+    setSelectedCustomProductIds(null);
+    setSelectedCMSPageSlug(null);
+    setActiveMenuFilterTitle(item.label || item.name || null);
+
+    const type = item.targetType;
+
+    if (type === 'category') {
+      const slug = item.categorySlug || item.targetSlug || item.targetValue || 'all';
+      setSelectedCategorySlug(slug);
       setCurrentView('shop');
-    } else if (item.targetType === 'view') {
-      setSelectedCategorySlug(null);
-      setCurrentView(item.targetValue);
-    } else if (item.targetType === 'page') {
-      setSelectedCategorySlug(null);
+    } else if (type === 'subcategory') {
+      const catSlug = item.categorySlug || 'all';
+      const subName = item.subcategoryName || item.targetSlug || item.targetValue;
+      setSelectedCategorySlug(catSlug);
+      setSelectedSubcategory(subName);
+      setCurrentView('shop');
+    } else if (type === 'sale') {
+      setSelectedCategorySlug('sale');
+      setCurrentView('shop');
+    } else if (type === 'collection') {
+      setSelectedCategorySlug('collection');
+      setSelectedCollectionName(item.collectionName || item.targetSlug || item.targetValue);
+      if (item.productIds && item.productIds.length > 0) {
+        setSelectedCustomProductIds(item.productIds);
+      }
+      setCurrentView('shop');
+    } else if (type === 'page') {
+      const pageSlug = item.pageSlug || item.targetSlug || item.targetValue;
+      setSelectedCMSPageSlug(pageSlug);
       setCurrentView('cms-page');
+    } else if (type === 'custom') {
+      const target = item.url || item.targetValue;
+      if (target && (target.startsWith('http://') || target.startsWith('https://'))) {
+        window.open(target, item.isNewTab ? '_blank' : '_self');
+      } else if (target && (target.startsWith('/') || target.includes('-'))) {
+        const cleanSlug = target.replace(/^\//, '');
+        if (['contact', 'about', 'faqs', 'privacy-policy', 'terms', 'shipping-policy', 'refund-policy'].includes(cleanSlug)) {
+          setSelectedCMSPageSlug(cleanSlug);
+          setCurrentView(cleanSlug === 'contact' ? 'contact' : 'cms-page');
+        } else {
+          setSelectedCategorySlug(cleanSlug);
+          setCurrentView('shop');
+        }
+      } else {
+        setSelectedCategorySlug(null);
+        setCurrentView('shop');
+      }
+    } else if (type === 'view') {
+      setSelectedCategorySlug(null);
+      setCurrentView(item.targetValue || 'home');
     } else {
       setSelectedCategorySlug(null);
       setCurrentView('shop');
     }
+
     setMobileMenuOpen(false);
   };
 

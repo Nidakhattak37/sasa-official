@@ -208,16 +208,31 @@ export interface CMSPage {
   lastUpdated: string;
 }
 
+export type MenuType = 'category' | 'subcategory' | 'sale' | 'collection' | 'page' | 'custom' | 'view';
+
 export interface MenuItem {
   id: string;
-  label: string;
-  targetType: 'view' | 'category' | 'page' | 'custom';
-  targetValue: string;
+  name?: string; // Menu Name
+  label: string; // Display Label
+  targetType: MenuType;
+  targetValue: string; // Slug, value, ID, or URL
+  targetId?: string;
+  targetSlug?: string;
+  url?: string;
+  categorySlug?: string;
+  subcategoryName?: string;
+  collectionName?: string;
+  productIds?: string[]; // Custom product collection selection
+  pageSlug?: string;
+  isActive?: boolean; // Active or Inactive toggle
+  sortOrder?: number; // Order index
   isNewTab?: boolean;
   isBold?: boolean;
   color?: string;
   badgeText?: string;
   badgeColor?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type Currency = 'PKR' | 'USD' | 'AED' | 'GBP';

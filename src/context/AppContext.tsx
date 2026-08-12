@@ -23,6 +23,16 @@ interface AppContextType {
   setSelectedProductId: (id: string | null) => void;
   selectedCategorySlug: string | null;
   setSelectedCategorySlug: (slug: string | null) => void;
+  selectedSubcategory: string | null;
+  setSelectedSubcategory: (sub: string | null) => void;
+  selectedCollectionName: string | null;
+  setSelectedCollectionName: (name: string | null) => void;
+  selectedCustomProductIds: string[] | null;
+  setSelectedCustomProductIds: (ids: string[] | null) => void;
+  selectedCMSPageSlug: string | null;
+  setSelectedCMSPageSlug: (slug: string | null) => void;
+  activeMenuFilterTitle: string | null;
+  setActiveMenuFilterTitle: (title: string | null) => void;
   isSearchOpen: boolean;
   setIsSearchOpen: (open: boolean) => void;
   isCartDrawerOpen: boolean;
@@ -185,6 +195,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentView, setCurrentView] = useState<string>('home');
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+  const [selectedCollectionName, setSelectedCollectionName] = useState<string | null>(null);
+  const [selectedCustomProductIds, setSelectedCustomProductIds] = useState<string[] | null>(null);
+  const [selectedCMSPageSlug, setSelectedCMSPageSlug] = useState<string | null>(null);
+  const [activeMenuFilterTitle, setActiveMenuFilterTitle] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState<boolean>(false);
   const [currency, setCurrency] = useState<Currency>('PKR');
@@ -951,23 +966,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setProducts(prev => [newProd, ...prev]);
 
-    // Asynchronously sync product metadata & image links to backend / MongoDB Atlas
+    // Asynchronously save product to backend / MongoDB Atlas
     fetch('/api/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ product: stripMongoId(newProd) })
-    }).catch(err => console.warn('[MONGODB SYNC NOTICE]', err));
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.product) {
+          const savedProd = stripMongoId(data.product);
+          setProducts(prev => prev.map(p => p.id === savedProd.id ? { ...p, ...savedProd } : p));
+        }
+      })
+      .catch(err => console.warn('[MONGODB SYNC NOTICE]', err));
   };
 
   const updateProduct = (updated: Product) => {
     setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
 
-    // Asynchronously sync updated product to backend / MongoDB Atlas
-    fetch('/api/products', {
-      method: 'POST',
+    // Asynchronously update product in backend / MongoDB Atlas
+    fetch(`/api/products/${updated.id}`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ product: stripMongoId(updated) })
-    }).catch(err => console.warn('[MONGODB SYNC NOTICE]', err));
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.product) {
+          const savedProd = stripMongoId(data.product);
+          setProducts(prev => prev.map(p => p.id === savedProd.id ? { ...p, ...savedProd } : p));
+        }
+      })
+      .catch(err => console.warn('[MONGODB SYNC NOTICE]', err));
   };
 
   const deleteProduct = (id: string) => {
@@ -1169,6 +1200,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       currentView, setCurrentView: handleSetCurrentView,
       selectedProductId, setSelectedProductId: handleSetSelectedProductId,
       selectedCategorySlug, setSelectedCategorySlug: handleSetSelectedCategorySlug,
+      selectedSubcategory, setSelectedSubcategory,
+      selectedCollectionName, setSelectedCollectionName,
+      selectedCustomProductIds, setSelectedCustomProductIds,
+      selectedCMSPageSlug, setSelectedCMSPageSlug,
+      activeMenuFilterTitle, setActiveMenuFilterTitle,
       isSearchOpen, setIsSearchOpen,
       isCartDrawerOpen, setIsCartDrawerOpen,
       currency, setCurrency,
