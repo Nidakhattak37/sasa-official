@@ -139,11 +139,31 @@ let activeMongoUri = null;
 const MONGO_RETRY_COOLDOWN_MS = 30000; // 30s cooldown before retrying failed Atlas connection
 
 /**
+ * Checks if a MongoDB URI is an unconfigured example / placeholder string.
+ */
+function isPlaceholderMongoUri(rawUri) {
+  if (!rawUri || typeof rawUri !== 'string') return true;
+  const uri = rawUri.trim();
+  if (!uri || uri.length < 15) return true;
+  const lower = uri.toLowerCase();
+  return (
+    lower.includes('username:password') ||
+    lower.includes('<username>') ||
+    lower.includes('<password>') ||
+    lower.includes('cluster0.xxxxx') ||
+    lower.includes('your_') ||
+    lower.includes('your-') ||
+    lower.includes('example') ||
+    lower.includes('mongodb+srv://username:password')
+  );
+}
+
+/**
  * Sanitizes and normalizes MongoDB URIs, ensuring special characters in credentials
  * (like @, #, $, %, +, ?, /) are safely URL-encoded to prevent authentication failures.
  */
 function sanitizeMongoUri(rawUri) {
-  if (!rawUri || typeof rawUri !== 'string') return '';
+  if (!rawUri || typeof rawUri !== 'string' || isPlaceholderMongoUri(rawUri)) return '';
   let uri = rawUri.trim().replace(/^['"]|['"]$/g, '');
 
   try {
@@ -178,6 +198,9 @@ function getMongoUri() {
          process.env.MONGO_URI || 
          process.env.MONGODB_URL || 
          '';
+  if (isPlaceholderMongoUri(raw)) {
+    return '';
+  }
   return sanitizeMongoUri(raw);
 }
 
@@ -191,7 +214,7 @@ function formatMongoError(err) {
     return 'MongoDB Atlas Network Access Firewall Block: The cluster rejected the connection (SSL alert 80). Please add "0.0.0.0/0" in your MongoDB Atlas Dashboard > Network Access > Add IP Address.';
   }
   if (msg.includes('bad auth') || msg.includes('Authentication failed') || msg.includes('8000')) {
-    return 'MongoDB Atlas Authentication Failed: Check the database username and password in MONGODB_URI (ensure special characters in password are URL-encoded or reset in Atlas > Database Access).';
+    return 'MongoDB Atlas Authentication Check Needed: Verify database username and password in MONGODB_URI (URL-encode special characters in password or reset in Atlas > Database Access).';
   }
   if (msg.includes('querySrv ENOTFOUND') || msg.includes('getaddrinfo ENOTFOUND')) {
     return 'MongoDB Atlas Host Not Found: Verify your cluster hostname or SRV connection string.';
@@ -256,7 +279,7 @@ async function getMongoDatabase(customUri = null, customDbName = null, forceRetr
     if (!customUri) {
       lastMongoError = readableError;
       mongoDb = null;
-      console.log(`[DATABASE ENGINE] Local Storage & Website Storage Mode active (Atlas status: ${readableError})`);
+      console.log('[DATABASE ENGINE] Operating in Local Storage & Website Storage Mode.');
     }
     if (customUri) {
       throw new Error(readableError);
