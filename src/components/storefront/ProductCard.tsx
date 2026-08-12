@@ -20,12 +20,18 @@ const toTitleCase = (str: string) => {
 };
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }) => {
-  const { currency, toggleWishlist, isInWishlist, addToCart, setCurrentView, setSelectedProductId } = useApp();
+  const { currency, toggleWishlist, isInWishlist, addToCart, setCurrentView, setSelectedProductId, getProductPricing } = useApp();
   const [isHovered, setIsHovered] = useState(false);
   const inWishlist = isInWishlist(product.id);
 
-  const discountPercent = product.originalPrice && product.isSale && product.originalPrice > product.price
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  // Evaluate dynamic active campaign pricing
+  const pricing = getProductPricing(product);
+  const isOnSale = pricing.isOnSale;
+  const effectivePrice = pricing.effectivePrice;
+  const originalPrice = pricing.originalPrice;
+
+  const discountPercent = isOnSale && originalPrice > effectivePrice
+    ? Math.round(((originalPrice - effectivePrice) / originalPrice) * 100)
     : null;
 
   const handleCardClick = () => {
@@ -71,11 +77,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }
           className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
         />
 
-        {/* Top Badges (No UNSTITCHED badge on top) */}
+        {/* Top Badges */}
         <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-10">
-          {product.isSale && discountPercent && (
+          {isOnSale && (
             <span className="px-2 py-0.5 text-[10px] font-bold bg-[#8B5E34] text-white uppercase tracking-wider rounded shadow-sm">
-              {discountPercent}% OFF
+              {discountPercent ? `${discountPercent}% OFF` : 'SALE'}
             </span>
           )}
           {product.isBestSeller && (
@@ -153,14 +159,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }
           </div>
         </div>
 
-        {/* 3. Pricing: Only cut/strike-through price IF product is marked on sale */}
+        {/* 3. Pricing: Show effective price and cross out original price if on sale */}
         <div className="pt-1 flex items-baseline gap-2">
           <span className="text-sm sm:text-base font-bold text-[#222222]">
-            {formatPrice(product.price, currency)}
+            {formatPrice(effectivePrice, currency)}
           </span>
-          {product.isSale && product.originalPrice && product.originalPrice > product.price && (
+          {isOnSale && originalPrice > effectivePrice && (
             <span className="text-xs text-[#999999] line-through font-normal">
-              {formatPrice(product.originalPrice, currency)}
+              {formatPrice(originalPrice, currency)}
             </span>
           )}
         </div>

@@ -32,7 +32,7 @@ const PIECE_TYPES = [
 ];
 
 export const AdminProducts: React.FC = () => {
-  const { products, addProduct, updateProduct, deleteProduct, categories, currency, setCurrentView, setSelectedProductId } = useApp();
+  const { products, addProduct, updateProduct, deleteProduct, categories, currency, setCurrentView, setSelectedProductId, saleCampaigns } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCat, setFilterCat] = useState('all');
@@ -62,7 +62,8 @@ export const AdminProducts: React.FC = () => {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isNewArrival, setIsNewArrival] = useState(true);
   const [isBestSeller, setIsBestSeller] = useState(false);
-  const [isSale, setIsSale] = useState(false);
+  const [isOnSale, setIsOnSale] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
 
   // Auto-adapt fields when category changes
   const handleCategoryChange = (catName: string) => {
@@ -99,7 +100,8 @@ export const AdminProducts: React.FC = () => {
     setCustomSizeInput('');
     setIsNewArrival(true);
     setIsBestSeller(false);
-    setIsSale(false);
+    setIsOnSale(false);
+    setSelectedCampaignId('');
     setIsModalOpen(true);
   };
 
@@ -125,7 +127,8 @@ export const AdminProducts: React.FC = () => {
     setCustomSizeInput('');
     setIsNewArrival(p.isNewArrival || false);
     setIsBestSeller(p.isBestSeller || false);
-    setIsSale(p.isSale || false);
+    setIsOnSale(p.isOnSale || p.isSale || false);
+    setSelectedCampaignId(p.campaignId || '');
     setIsModalOpen(true);
   };
 
@@ -217,7 +220,9 @@ export const AdminProducts: React.FC = () => {
       colors: [{ name: 'Royale Burgundy', hex: '#6b1c28' }],
       isNewArrival,
       isBestSeller,
-      isSale,
+      isOnSale,
+      isSale: isOnSale,
+      campaignId: isOnSale ? (selectedCampaignId || null) : null,
       isFeatured: true,
       rating: 5.0,
       reviewsCount: 1,
@@ -889,19 +894,43 @@ export const AdminProducts: React.FC = () => {
               </div>
 
               {/* Toggles */}
-              <div className="flex flex-wrap gap-4 pt-2 border-t border-[#EAE4DC]">
-                <label className="flex items-center space-x-2 font-semibold text-[#222]">
-                  <input type="checkbox" checked={isNewArrival} onChange={(e) => setIsNewArrival(e.target.checked)} className="accent-[#9E8055] w-4 h-4" />
-                  <span>Mark as New Arrival</span>
-                </label>
-                <label className="flex items-center space-x-2 font-semibold text-[#222]">
-                  <input type="checkbox" checked={isBestSeller} onChange={(e) => setIsBestSeller(e.target.checked)} className="accent-[#9E8055] w-4 h-4" />
-                  <span>Mark as Best Seller</span>
-                </label>
-                <label className="flex items-center space-x-2 font-semibold text-[#222]">
-                  <input type="checkbox" checked={isSale} onChange={(e) => setIsSale(e.target.checked)} className="accent-[#9E8055] w-4 h-4" />
-                  <span>Mark on Sale</span>
-                </label>
+              <div className="space-y-3 pt-2 border-t border-[#EAE4DC]">
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center space-x-2 font-semibold text-[#222] cursor-pointer">
+                    <input type="checkbox" checked={isNewArrival} onChange={(e) => setIsNewArrival(e.target.checked)} className="accent-[#9E8055] w-4 h-4" />
+                    <span>Mark as New Arrival</span>
+                  </label>
+                  <label className="flex items-center space-x-2 font-semibold text-[#222] cursor-pointer">
+                    <input type="checkbox" checked={isBestSeller} onChange={(e) => setIsBestSeller(e.target.checked)} className="accent-[#9E8055] w-4 h-4" />
+                    <span>Mark as Best Seller</span>
+                  </label>
+                  <label className="flex items-center space-x-2 font-semibold text-[#8B5E34] cursor-pointer">
+                    <input type="checkbox" checked={isOnSale} onChange={(e) => setIsOnSale(e.target.checked)} className="accent-[#8B5E34] w-4 h-4" />
+                    <span>☑ Mark Product On Sale</span>
+                  </label>
+                </div>
+
+                {/* Campaign Selection Dropdown */}
+                {isOnSale && (
+                  <div className="p-3.5 bg-[#F5F1EC] rounded-xl border border-[#EAE4DC] space-y-2 animate-in fade-in">
+                    <label className="block text-xs font-bold text-[#222]">Select Sale & Discount Campaign</label>
+                    <select
+                      value={selectedCampaignId}
+                      onChange={(e) => setSelectedCampaignId(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-[#EAE4DC] rounded-lg font-bold text-xs text-[#222]"
+                    >
+                      <option value="">Select Campaign (Or apply automatic date-matching rule)</option>
+                      {saleCampaigns.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} - {c.discountType === 'fixed' ? `PKR ${c.discountValue?.toLocaleString()} OFF` : `${c.discountValue ?? c.discountPercentage}% OFF`}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-gray-500">
+                      When selected, this product will use the campaign's discount rate without overwriting the original base price.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}

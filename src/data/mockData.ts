@@ -1,4 +1,72 @@
-import { Product, Category, Order, Coupon, Review, Banner, Customer, StoreSettings, CMSPage } from '../types';
+import { Product, Category, Order, Coupon, Review, Banner, Customer, StoreSettings, CMSPage, SaleCampaign } from '../types';
+
+export const INITIAL_SALE_CAMPAIGNS: SaleCampaign[] = [
+  {
+    id: 'camp-summer-2026',
+    name: 'Summer Sale',
+    discountType: 'percentage',
+    discountValue: 20,
+    startDate: '2026-08-01T00:00',
+    endDate: '2026-08-31T23:59',
+    status: 'Active',
+    isActive: true,
+    bannerUrl: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1000',
+    description: 'Flat 20% Off across Summer Lawn & Ready-To-Wear Pret edits.',
+    createdAt: '2026-08-01'
+  },
+  {
+    id: 'camp-eid-2026',
+    name: 'Eid Sale',
+    discountType: 'percentage',
+    discountValue: 30,
+    startDate: '2026-08-01T00:00',
+    endDate: '2026-08-25T23:59',
+    status: 'Active',
+    isActive: true,
+    bannerUrl: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=1000',
+    description: '30% Off Festive Edit 2026 collections.',
+    createdAt: '2026-08-01'
+  },
+  {
+    id: 'camp-clearance-2026',
+    name: 'Clearance Sale',
+    discountType: 'percentage',
+    discountValue: 50,
+    startDate: '2026-08-01T00:00',
+    endDate: '2026-08-31T23:59',
+    status: 'Active',
+    isActive: true,
+    bannerUrl: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&q=80&w=1000',
+    description: 'Massive 50% Off Clearance on end-of-season luxury items.',
+    createdAt: '2026-08-01'
+  },
+  {
+    id: 'camp-independence-2026',
+    name: 'Independence Day Sale',
+    discountType: 'percentage',
+    discountValue: 15,
+    startDate: '2026-08-10T00:00',
+    endDate: '2026-08-16T23:59',
+    status: 'Active',
+    isActive: true,
+    bannerUrl: '/images/black_olive_suit.jpg',
+    description: '15% Azadi discount for Independence Day week.',
+    createdAt: '2026-08-10'
+  },
+  {
+    id: 'camp-flat1000-2026',
+    name: 'Flat Rs. 1,000 Off',
+    discountType: 'fixed',
+    discountValue: 1000,
+    startDate: '2026-08-01T00:00',
+    endDate: '2026-08-31T23:59',
+    status: 'Active',
+    isActive: true,
+    bannerUrl: '/images/yellow_mustard_suit.jpg',
+    description: 'Flat Rs. 1,000 instant reduction on select formals.',
+    createdAt: '2026-08-01'
+  }
+];
 
 export const INITIAL_PRODUCTS: Product[] = [
   {

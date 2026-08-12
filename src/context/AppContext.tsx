@@ -4,8 +4,9 @@ import {
 } from '../types';
 import {
   INITIAL_PRODUCTS, INITIAL_CATEGORIES, INITIAL_ORDERS, INITIAL_COUPONS, INITIAL_REVIEWS, INITIAL_BANNERS, INITIAL_CUSTOMERS,
-  INITIAL_STORE_SETTINGS, INITIAL_CMS_PAGES, DEFAULT_INSTANT_CLASSICS, DEFAULT_DUAL_EDITORIAL
+  INITIAL_STORE_SETTINGS, INITIAL_CMS_PAGES, DEFAULT_INSTANT_CLASSICS, DEFAULT_DUAL_EDITORIAL, INITIAL_SALE_CAMPAIGNS
 } from '../data/mockData';
+import { getProductEffectivePricing, EffectivePricingResult } from '../utils/campaignUtils';
 
 const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'm-1', label: 'Home', targetType: 'view', targetValue: 'home' },
@@ -116,6 +117,7 @@ interface AppContextType {
   applySaleCampaign: (campaignId: string) => void;
   revertSaleCampaign: (campaignId: string) => void;
   restoreAllOriginalPrices: () => void;
+  getProductPricing: (product: Product) => EffectivePricingResult;
 
   // Team & Admin Users Management
   adminUsers: AdminUser[];
@@ -161,26 +163,7 @@ const INITIAL_ADMIN_USERS: AdminUser[] = [
   }
 ];
 
-const INITIAL_SALE_CAMPAIGNS: SaleCampaign[] = [
-  {
-    id: 'sale-1',
-    name: '2024 Collection Clearance',
-    targetType: 'year',
-    targetValue: '2024',
-    discountPercentage: 25,
-    isActive: false,
-    createdAt: '2025-01-10'
-  },
-  {
-    id: 'sale-2',
-    name: 'Unstitched Festive Promo',
-    targetType: 'category',
-    targetValue: 'Unstitched',
-    discountPercentage: 20,
-    isActive: false,
-    createdAt: '2025-01-15'
-  }
-];
+
 
 const isAdminRoute = (pathname: string) => {
   if (typeof window === 'undefined') return false;
@@ -377,6 +360,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
       .catch(() => {});
 
+    fetch('/api/campaigns')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.campaigns) && data.campaigns.length > 0) {
+          const cleanCampaigns = data.campaigns.map((c: any) => stripMongoId(c));
+          setSaleCampaigns(cleanCampaigns);
+          localStorage.setItem('sasa_sale_campaigns', JSON.stringify(cleanCampaigns));
+        }
+      })
+      .catch(() => {});
+
     fetch('/api/settings')
       .then(res => res.json())
       .then(data => {
@@ -555,117 +549,85 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCustomers(INITIAL_CUSTOMERS);
   };
 
+  // Helper to evaluate live pricing for any product using campaigns
+  const getProductPricing = (product: Product): EffectivePricingResult => {
+    return getProductEffectivePricing(product, saleCampaigns);
+  };
+
   // Sale Campaigns Management Engine
   const addSaleCampaign = (campaignData: Omit<SaleCampaign, 'id' | 'createdAt'>) => {
     const newCamp: SaleCampaign = {
       ...campaignData,
       id: `sale-${Date.now()}`,
-      createdAt: new Date().toISOString().split('T')[0]
+      createdAt: new Date().toISOString().split('T')[0],
+      status: campaignData.status || (campaignData.isActive ? 'Active' : 'Inactive')
     };
-    setSaleCampaigns(prev => [newCamp, ...prev]);
-    if (newCamp.isActive) {
-      applySaleCampaignLogic(newCamp);
-    }
+
+    setSaleCampaigns(prev => {
+      const updated = [newCamp, ...prev];
+      localStorage.setItem('sasa_sale_campaigns', JSON.stringify(updated));
+      return updated;
+    });
+
+    fetch('/api/campaigns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaign: newCamp })
+    }).catch(err => console.warn('[CAMPAIGN SAVE ERROR]', err));
   };
 
   const updateSaleCampaign = (updated: SaleCampaign) => {
-    setSaleCampaigns(prev => prev.map(c => c.id === updated.id ? updated : c));
-    if (updated.isActive) {
-      applySaleCampaignLogic(updated);
-    } else {
-      revertSaleCampaignLogic(updated);
-    }
+    const cleanCamp = {
+      ...updated,
+      status: updated.status || (updated.isActive ? 'Active' : 'Inactive')
+    };
+
+    setSaleCampaigns(prev => {
+      const list = prev.map(c => c.id === cleanCamp.id ? cleanCamp : c);
+      localStorage.setItem('sasa_sale_campaigns', JSON.stringify(list));
+      return list;
+    });
+
+    fetch('/api/campaigns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaign: cleanCamp })
+    }).catch(err => console.warn('[CAMPAIGN UPDATE ERROR]', err));
   };
 
   const deleteSaleCampaign = (id: string) => {
-    const target = saleCampaigns.find(c => c.id === id);
-    if (target && target.isActive) {
-      revertSaleCampaignLogic(target);
-    }
-    setSaleCampaigns(prev => prev.filter(c => c.id !== id));
-  };
+    setSaleCampaigns(prev => {
+      const list = prev.filter(c => c.id !== id);
+      localStorage.setItem('sasa_sale_campaigns', JSON.stringify(list));
+      return list;
+    });
 
-  const applySaleCampaignLogic = (campaign: SaleCampaign) => {
-    setProducts(prev => prev.map(prod => {
-      let isMatch = false;
-      if (campaign.targetType === 'category') {
-        const prodCat = (prod.category || '').toLowerCase();
-        const targetCat = (campaign.targetValue || '').toLowerCase();
-        isMatch = prodCat.includes(targetCat) || targetCat.includes(prodCat);
-      } else if (campaign.targetType === 'pieceType') {
-        isMatch = (prod.pieceType || '').toLowerCase() === (campaign.targetValue || '').toLowerCase();
-      } else if (campaign.targetType === 'year') {
-        const prodYear = prod.year ? String(prod.year) : '';
-        isMatch = prodYear === String(campaign.targetValue);
-      } else if (campaign.targetType === 'all') {
-        isMatch = true;
-      }
-
-      if (isMatch) {
-        const originalBasePrice = prod.originalPrice || prod.price;
-        const discountMultiplier = (100 - campaign.discountPercentage) / 100;
-        const newSalePrice = Math.round(originalBasePrice * discountMultiplier);
-        return {
-          ...prod,
-          originalPrice: originalBasePrice,
-          price: newSalePrice,
-          isSale: true
-        };
-      }
-      return prod;
-    }));
-  };
-
-  const revertSaleCampaignLogic = (campaign: SaleCampaign) => {
-    setProducts(prev => prev.map(prod => {
-      let isMatch = false;
-      if (campaign.targetType === 'category') {
-        const prodCat = (prod.category || '').toLowerCase();
-        const targetCat = (campaign.targetValue || '').toLowerCase();
-        isMatch = prodCat.includes(targetCat) || targetCat.includes(prodCat);
-      } else if (campaign.targetType === 'pieceType') {
-        isMatch = (prod.pieceType || '').toLowerCase() === (campaign.targetValue || '').toLowerCase();
-      } else if (campaign.targetType === 'year') {
-        const prodYear = prod.year ? String(prod.year) : '';
-        isMatch = prodYear === String(campaign.targetValue);
-      } else if (campaign.targetType === 'all') {
-        isMatch = true;
-      }
-
-      if (isMatch && prod.originalPrice) {
-        return {
-          ...prod,
-          price: prod.originalPrice,
-          isSale: false
-        };
-      }
-      return prod;
-    }));
+    fetch(`/api/campaigns/${id}`, { method: 'DELETE' }).catch(err => console.warn('[CAMPAIGN DELETE ERROR]', err));
   };
 
   const applySaleCampaign = (campaignId: string) => {
     const campaign = saleCampaigns.find(c => c.id === campaignId);
     if (!campaign) return;
-    const updated = { ...campaign, isActive: true };
-    setSaleCampaigns(prev => prev.map(c => c.id === campaignId ? updated : c));
-    applySaleCampaignLogic(updated);
+    const updated = { ...campaign, isActive: true, status: 'Active' as const };
+    updateSaleCampaign(updated);
   };
 
   const revertSaleCampaign = (campaignId: string) => {
     const campaign = saleCampaigns.find(c => c.id === campaignId);
     if (!campaign) return;
-    const updated = { ...campaign, isActive: false };
-    setSaleCampaigns(prev => prev.map(c => c.id === campaignId ? updated : c));
-    revertSaleCampaignLogic(updated);
+    const updated = { ...campaign, isActive: false, status: 'Inactive' as const };
+    updateSaleCampaign(updated);
   };
 
   const restoreAllOriginalPrices = () => {
     setProducts(prev => prev.map(prod => ({
       ...prod,
       price: prod.originalPrice || prod.price,
-      isSale: false
+      isOnSale: false,
+      isSale: false,
+      campaignId: null
     })));
-    setSaleCampaigns(prev => prev.map(c => ({ ...c, isActive: false })));
+    setSaleCampaigns(prev => prev.map(c => ({ ...c, isActive: false, status: 'Inactive' as const })));
   };
 
   // Admin Users & Team Management
@@ -813,14 +775,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Cart Functions
   const addToCart = (product: Product, size: string, color: string, qty: number = 1) => {
+    const pricing = getProductEffectivePricing(product, saleCampaigns);
+    const cartProduct: Product = {
+      ...product,
+      price: pricing.effectivePrice,
+      originalPrice: pricing.originalPrice,
+      isOnSale: pricing.isOnSale,
+      isSale: pricing.isOnSale,
+      campaignId: pricing.campaign?.id || product.campaignId || null
+    };
     setCart(prev => {
       const existingIndex = prev.findIndex(item => item.product.id === product.id && item.selectedSize === size && item.selectedColor === color);
       if (existingIndex > -1) {
         const updated = [...prev];
         updated[existingIndex].quantity += qty;
+        updated[existingIndex].product = cartProduct;
         return updated;
       }
-      return [...prev, { product, selectedSize: size, selectedColor: color, quantity: qty }];
+      return [...prev, { product: cartProduct, selectedSize: size, selectedColor: color, quantity: qty }];
     });
     setIsCartDrawerOpen(true);
   };
@@ -1221,7 +1193,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addReview, updateReviewStatus, replyReview,
       addBanner, updateBanner, deleteBanner,
       updateSettings, updateCMSPage,
-      saleCampaigns, addSaleCampaign, updateSaleCampaign, deleteSaleCampaign, applySaleCampaign, revertSaleCampaign, restoreAllOriginalPrices,
+      saleCampaigns, addSaleCampaign, updateSaleCampaign, deleteSaleCampaign, applySaleCampaign, revertSaleCampaign, restoreAllOriginalPrices, getProductPricing,
       adminUsers, currentAdmin, addAdminUser, updateAdminUser, removeAdminUser,
       userRole, setUserRole,
       isAdminAuthenticated, loginAdmin, logoutAdmin,

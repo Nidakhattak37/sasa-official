@@ -999,6 +999,7 @@ const serverFallbackStore = {
   instantClassics: null,
   dualEditorial: null,
   banners: [],
+  campaigns: [],
   settings: null
 };
 
@@ -1430,6 +1431,80 @@ app.post('/api/db/sync', async (req, res) => {
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// GET /api/campaigns: Fetch sale campaigns
+app.get('/api/campaigns', async (req, res) => {
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const rawCampaigns = await db.collection('sale_campaigns').find({}).toArray();
+      if (rawCampaigns && rawCampaigns.length > 0) {
+        const campaigns = rawCampaigns.map(c => cleanMongoPayload(c));
+        serverFallbackStore.campaigns = campaigns;
+        return res.json({ success: true, source: 'mongodb_atlas', campaigns });
+      }
+    }
+  } catch (err) {
+    console.warn('[MONGODB CAMPAIGNS FETCH ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local', campaigns: serverFallbackStore.campaigns || [] });
+});
+
+// POST /api/campaigns: Save or update sale campaign
+app.post('/api/campaigns', async (req, res) => {
+  const { campaign } = req.body || {};
+  if (!campaign || !campaign.id) {
+    return res.status(400).json({ success: false, message: 'Missing campaign data or ID' });
+  }
+
+  const cleanCampaign = {
+    ...campaign,
+    bannerUrl: campaign.bannerUrl ? saveBase64Image(campaign.bannerUrl, 'campaign') : campaign.bannerUrl,
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!serverFallbackStore.campaigns) serverFallbackStore.campaigns = [];
+  const idx = serverFallbackStore.campaigns.findIndex(c => c.id === cleanCampaign.id);
+  if (idx >= 0) {
+    serverFallbackStore.campaigns[idx] = cleanCampaign;
+  } else {
+    serverFallbackStore.campaigns.push(cleanCampaign);
+  }
+
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      const updateData = cleanMongoPayload(cleanCampaign);
+      await db.collection('sale_campaigns').updateOne(
+        { id: cleanCampaign.id },
+        { $set: updateData },
+        { upsert: true }
+      );
+      return res.json({ success: true, source: 'mongodb_atlas', campaign: cleanCampaign });
+    }
+  } catch (err) {
+    console.warn('[MONGODB CAMPAIGN SAVE ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local_fallback', campaign: cleanCampaign });
+});
+
+// DELETE /api/campaigns/:id: Delete campaign
+app.delete('/api/campaigns/:id', async (req, res) => {
+  const { id } = req.params;
+  if (serverFallbackStore.campaigns) {
+    serverFallbackStore.campaigns = serverFallbackStore.campaigns.filter(c => c.id !== id);
+  }
+  try {
+    const db = await getMongoDatabase();
+    if (db) {
+      await db.collection('sale_campaigns').deleteOne({ id });
+      return res.json({ success: true, source: 'mongodb_atlas', id });
+    }
+  } catch (err) {
+    console.warn('[MONGODB CAMPAIGN DELETE ERROR]', err.message);
+  }
+  return res.json({ success: true, source: 'local_fallback', id });
 });
 
 // GET /api/banners: Fetch promotional banners

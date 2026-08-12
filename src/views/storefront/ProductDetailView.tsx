@@ -18,7 +18,7 @@ export const ProductDetailView: React.FC = () => {
   const {
     products, selectedProductId, setSelectedProductId,
     currency, addToCart, toggleWishlist, isInWishlist,
-    reviews, addReview, setCurrentView, settings
+    reviews, addReview, setCurrentView, settings, getProductPricing
   } = useApp();
 
   const product = products.find(p => p.id === selectedProductId) || products[0];
@@ -64,8 +64,14 @@ export const ProductDetailView: React.FC = () => {
   const inWishlist = isInWishlist(product.id);
   const productReviews = reviews.filter(r => r.productId === product.id && r.status === 'Approved');
 
-  const discountPercent = product.originalPrice
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  // Evaluate dynamic campaign sale pricing
+  const pricing = getProductPricing(product);
+  const effectivePrice = pricing.effectivePrice;
+  const originalPrice = pricing.originalPrice;
+  const isOnSale = pricing.isOnSale;
+
+  const discountPercent = isOnSale && originalPrice > effectivePrice
+    ? Math.round(((originalPrice - effectivePrice) / originalPrice) * 100)
     : null;
 
   const relatedProducts = products.filter(p => p.id !== product.id && p.category === product.category).slice(0, 4);
@@ -239,9 +245,9 @@ export const ProductDetailView: React.FC = () => {
                 )}
 
                 <div className="absolute top-4 left-4 flex flex-col gap-1.5 z-10 pointer-events-none">
-                  {product.isSale && discountPercent && (
+                  {isOnSale && (
                     <span className="px-3 py-1 bg-[#8B5E34] text-white text-xs font-bold uppercase tracking-wider rounded shadow-sm">
-                      {discountPercent}% OFF
+                      {discountPercent ? `${discountPercent}% OFF` : 'SALE'}
                     </span>
                   )}
                   {product.isBestSeller && (
@@ -277,16 +283,16 @@ export const ProductDetailView: React.FC = () => {
                 {/* Price Display */}
                 <div className="flex items-baseline gap-3 pt-1">
                   <span className="text-2xl font-bold text-[#1E1E24]">
-                    {formatPrice(product.price, currency)}
+                    {formatPrice(effectivePrice, currency)}
                   </span>
-                  {product.isSale && product.originalPrice && product.originalPrice > product.price && (
+                  {isOnSale && originalPrice > effectivePrice && (
                     <span className="text-sm text-gray-400 line-through font-normal">
-                      {formatPrice(product.originalPrice, currency)}
+                      {formatPrice(originalPrice, currency)}
                     </span>
                   )}
-                  {discountPercent && (
+                  {isOnSale && discountPercent && (
                     <span className="text-xs font-bold text-[#8B5E34] bg-[#F5F1EC] px-2 py-0.5 rounded border border-[#EAE4DC]">
-                      Save {discountPercent}%
+                      Save {discountPercent}% {pricing.campaign ? `(${pricing.campaign.name})` : ''}
                     </span>
                   )}
                 </div>

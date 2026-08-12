@@ -9,6 +9,9 @@ export interface Product {
   slug: string;
   price: number;
   originalPrice?: number;
+  isOnSale?: boolean;
+  campaignId?: string | null;
+  salePrice?: number | null;
   category: string;
   subcategory?: string;
   department?: string; // 'Apparel' | 'Footwear / Shoes' | 'Watches & Timepieces' | 'Handbags & Clutches' | 'Jewelry' | 'Fragrances' | 'Accessories' | string
@@ -64,7 +67,13 @@ export interface OrderItem {
   selectedColor: string;
   quantity: number;
   price: number;
+  originalPrice?: number;
+  campaignId?: string;
+  campaignName?: string;
+  discountAmount?: number;
   image: string;
+  sku?: string;
+  category?: string;
 }
 
 export type OrderStatus = 'Confirmed' | 'Packed' | 'Shipped' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Returned';
@@ -240,13 +249,18 @@ export type Currency = 'PKR' | 'USD' | 'AED' | 'GBP';
 export interface SaleCampaign {
   id: string;
   name: string;
-  targetType: 'all' | 'category' | 'year' | 'collection' | 'pieceType';
-  targetValue: string; // e.g. '2024', '3 Piece', 'Pret', 'Unstitched', 'All Products'
-  discountPercentage: number; // e.g. 20 (for 20% off)
+  discountType: 'percentage' | 'fixed'; // 'percentage' (%) or 'fixed' amount (PKR)
+  discountValue: number; // e.g. 20 (for 20%) or 1000 (for Rs. 1000)
+  startDate: string; // ISO date/time e.g. "2026-08-10T00:00"
+  endDate: string; // ISO date/time e.g. "2026-08-31T23:59"
+  status?: 'Active' | 'Inactive';
   isActive: boolean;
-  startDate?: string;
-  endDate?: string;
+  bannerUrl?: string;
+  description?: string;
   createdAt: string;
+  targetType?: 'all' | 'category' | 'year' | 'collection' | 'pieceType' | 'custom';
+  targetValue?: string;
+  discountPercentage?: number; // legacy compatibility
   appliedCount?: number;
 }
 
